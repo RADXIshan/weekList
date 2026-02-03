@@ -25,7 +25,7 @@ const NamePrompt = () => {
                     <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-2">
                         <UserCircle2 className="w-10 h-10" />
                     </div>
-                    <h2 className="text-2xl font-bold text-neutral-100">Welcome to weekList</h2>
+                    <h2 className="text-2xl font-bold text-neutral-100">Welcome to WeekList</h2>
                     <p className="text-neutral-500 text-sm">To get started, please tell us your name so we can personalize your experience.</p>
                 </div>
 

@@ -38,7 +38,11 @@ const DayView = () => {
   const progress = dailProgress(selectedDate);
   
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+        activationConstraint: {
+            distance: 8,
+        },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -91,7 +95,7 @@ const DayView = () => {
   const dateSubheader = format(selectedDate, 'MMM d');
 
   return (
-    <div className="h-full flex flex-col max-w-4xl mx-auto p-8 animate-in fade-in duration-500">
+    <div className="h-full flex flex-col max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">

@@ -39,7 +39,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
             isDragging && "z-50 bg-neutral-800 shadow-xl border-neutral-700"
         )}
     >
-      <div {...attributes} {...listeners} className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400">
+      <div {...attributes} {...listeners} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400">
           <GripVertical className="w-5 h-5" />
       </div>
       <button
@@ -80,8 +80,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
       <button
         onClick={() => toggleFavorite(task.id)}
         className={cn(
-            "opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200",
-            task.isFavorite ? "opacity-100 text-yellow-500 hover:bg-yellow-500/10" : "text-neutral-600 hover:text-yellow-500 hover:bg-yellow-500/10"
+            "p-2 rounded-lg transition-all duration-200",
+            task.isFavorite ? "text-yellow-500 hover:bg-yellow-500/10" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 text-neutral-600 hover:text-yellow-500 hover:bg-yellow-500/10"
         )}
         title="Toggle Favorite"
       >
@@ -90,7 +90,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
 
       <button
         onClick={() => onDelete(task.id)}
-        className="opacity-0 group-hover:opacity-100 p-2 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
+        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
         aria-label="Delete task"
       >
         <Trash2 className="w-5 h-5" />

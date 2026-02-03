@@ -232,7 +232,7 @@ const WeekView = () => {
   return (
     <div className="h-full flex flex-col w-full overflow-hidden">
       {/* View Header */}
-      <div className="shrink-0 p-8 pb-4 flex items-center justify-between">
+      <div className="shrink-0 p-4 md:p-8 pb-4 flex items-center justify-between">
          <h2 className="text-3xl font-bold text-neutral-100 tracking-tight">Week Plan</h2>
          <div className="flex bg-neutral-900 p-1 rounded-lg border border-neutral-800">
              <button 
@@ -253,15 +253,15 @@ const WeekView = () => {
       </div>
 
       {layout === 'board' ? (
-          <div className="flex-1 overflow-x-auto min-h-0 custom-scrollbar p-8 pt-0">
-               <div className="flex h-full gap-6 w-max min-w-full pb-4">
+          <div className="flex-1 overflow-x-auto min-h-0 custom-scrollbar p-4 xl:p-8 pt-0">
+               <div className="flex h-full gap-4 md:gap-6 w-max min-w-full pb-4">
                    {days.map(date => (
                        <DayColumn key={date.toISOString()} date={date} />
                    ))}
                </div>
           </div>
       ) : (
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-0 max-w-4xl mx-auto w-full space-y-8 pb-20">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pt-0 max-w-4xl mx-auto w-full space-y-8 pb-20">
              {days.map(date => {
                 const tasks = getTasksForDate(date);
                 const dateStr = format(date, 'yyyy-MM-dd');

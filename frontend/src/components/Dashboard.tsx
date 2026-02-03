@@ -34,7 +34,7 @@ const Dashboard = () => {
     const todayProgress = dailProgress(new Date());
 
     return (
-        <div className="h-full flex flex-col max-w-5xl mx-auto p-8 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
+        <div className="h-full flex flex-col max-w-5xl mx-auto p-4 md:p-8 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-bold text-neutral-100 tracking-tight flex items-center gap-3">
                     <PieChart className="w-8 h-8 text-indigo-500" />

@@ -30,7 +30,7 @@ const FiltersAndLabels = () => {
   };
 
   return (
-    <div className="h-full flex flex-col max-w-4xl mx-auto p-8 animate-in fade-in duration-500">
+    <div className="h-full flex flex-col max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-neutral-100 tracking-tight">Filters & Labels</h2>
         <p className="text-neutral-500 mt-2">Manage your tags and organization</p>

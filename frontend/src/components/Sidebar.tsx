@@ -1,13 +1,24 @@
 import React from 'react';
-import { Calendar, LayoutList, Sun, PieChart, Plus } from 'lucide-react';
+import { Calendar, LayoutList, Sun, PieChart, Plus, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { cn } from '../lib/utils';
 
 
-const Sidebar = () => {
+interface SidebarProps {
+    mobileOpen?: boolean;
+    onMobileClose?: () => void;
+}
+
+const Sidebar = ({ mobileOpen = false, onMobileClose }: SidebarProps) => {
   const { selectedDate, setSelectedDate, viewMode, setViewMode, setFilterType, setActiveLabel, filterType, activeLabel, labels, createLabel } = useApp();
   const [isAddingLabel, setIsAddingLabel] = React.useState(false);
   const [newLabelName, setNewLabelName] = React.useState('');
+  
+  // Close sidebar on mobile when navigating
+  const handleNavigation = (action: () => void) => {
+      action();
+      if (onMobileClose) onMobileClose();
+  };
 
   const handleAddLabel = (e: React.FormEvent) => {
       e.preventDefault();
@@ -52,23 +63,32 @@ const Sidebar = () => {
     }
   ];
 
-  return (
-    <div className="w-64 h-screen bg-neutral-900 border-r border-neutral-800 flex flex-col p-4">
-      {/* Header Profile/Title */}
-      <div className="flex items-center gap-3 mb-8 px-2">
-         <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold border border-indigo-500/30">
-            {(useApp().userName || 'I').charAt(0).toUpperCase()}
-         </div>
-         <div>
-             <h1 className="text-sm font-semibold text-neutral-200">{(useApp().userName || 'My').split(' ')[0]}'s Tasks</h1>
-         </div>
-      </div>
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-neutral-900 border-r border-neutral-800 p-4">
+        {/* Header Profile/Title */}
+        <div className="flex items-center justify-between mb-8 px-2">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold border border-indigo-500/30">
+                    {(useApp().userName || 'I').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <h1 className="text-sm font-semibold text-neutral-200">{(useApp().userName || 'My').split(' ')[0]}'s Tasks</h1>
+                </div>
+            </div>
+            {/* Mobile Close Button */}
+            <button 
+                onClick={onMobileClose}
+                className="md:hidden text-neutral-400 hover:text-neutral-200"
+            >
+                <X className="w-5 h-5" />
+            </button>
+        </div>
 
       <div className="space-y-1">
         {navItems.map((item) => (
           <button
             key={item.label}
-            onClick={item.onClick}
+            onClick={() => handleNavigation(item.onClick)}
             className={cn(
               "w-full text-left px-3 py-3 rounded-lg text-base transition-all duration-200 flex items-center gap-3",
               (viewMode === item.id) || (item.id === 'day' && viewMode === 'day' && isToday(selectedDate))
@@ -87,10 +107,10 @@ const Sidebar = () => {
          <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider px-2 mb-2">Favorites</h2>
          <div className="space-y-1">
              <button 
-                 onClick={() => {
+                 onClick={() => handleNavigation(() => {
                      setFilterType('favorites');
                      setViewMode('filters');
-                 }}
+                 })}
                  className={cn(
                     "w-full text-left px-3 py-3 rounded-lg text-base transition-all duration-200 flex items-center gap-2",
                     viewMode === 'filters' && filterType === 'favorites' ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:bg-neutral-800/50"
@@ -119,11 +139,11 @@ const Sidebar = () => {
              {labels.map(label => (
                 <button 
                     key={label}
-                    onClick={() => {
+                    onClick={() => handleNavigation(() => {
                         setFilterType('label');
                         setActiveLabel(label);
                         setViewMode('filters');
-                    }}
+                    })}
                     className={cn(
                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 flex items-center gap-2",
                        viewMode === 'filters' && filterType === 'label' && activeLabel === label ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:bg-neutral-800/50"
@@ -150,6 +170,31 @@ const Sidebar = () => {
          </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+        {/* Desktop Sidebar */}
+        <div className="hidden md:block w-64 h-screen shrink-0">
+            {sidebarContent}
+        </div>
+
+        {/* Mobile Sidebar Overlay */}
+        {mobileOpen && (
+            <div 
+                className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in duration-200"
+                onClick={onMobileClose}
+            />
+        )}
+
+        {/* Mobile Sidebar Drawer */}
+        <div className={cn(
+            "fixed inset-y-0 left-0 z-50 w-64 md:hidden transform transition-transform duration-300 ease-in-out",
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
+            {sidebarContent}
+        </div>
+    </>
   );
 };
 

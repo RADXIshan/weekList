@@ -21,7 +21,11 @@ const FilteredView = () => {
   const filteredTasks = getFilteredTasks().sort((a, b) => Number(a.completed) - Number(b.completed));
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+        activationConstraint: {
+            distance: 8,
+        },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -47,7 +51,7 @@ const FilteredView = () => {
   };
 
   return (
-    <div className="h-full flex flex-col max-w-4xl mx-auto p-8 animate-in fade-in duration-500">
+    <div className="h-full flex flex-col max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-neutral-100 tracking-tight flex items-center gap-3">
              {filterType === 'favorites' && <div className="w-3 h-3 rounded-full bg-yellow-500" />}
