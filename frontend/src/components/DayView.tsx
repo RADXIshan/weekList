@@ -15,6 +15,7 @@ const DayView = () => {
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLabelOpen, setIsLabelOpen] = useState(false);
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [newTaskPriority, setNewTaskPriority] = useState<1 | 2 | 3 | 4>(4);
   const [sortBy, setSortBy] = useState<'manual' | 'priority' | 'alpha'>('manual');
 
@@ -277,19 +278,49 @@ const DayView = () => {
                      <Repeat className="w-5 h-5" />
                   </button>
 
-                   <button 
-                     type="button"
-                     onClick={() => setNewTaskPriority(prev => prev === 1 ? 4 : (prev - 1) as 1|2|3|4)}
-                     className={`p-2 rounded-md transition-all ${
-                         newTaskPriority === 1 ? 'text-red-500 bg-red-500/10' :
-                         newTaskPriority === 2 ? 'text-orange-500 bg-orange-500/10' :
-                         newTaskPriority === 3 ? 'text-blue-500 bg-blue-500/10' :
-                         'hover:bg-neutral-800 text-neutral-500'
-                     }`}
-                     title={`Priority ${newTaskPriority === 4 ? 'None' : newTaskPriority}`}
-                  >
-                     <Flag className={`w-5 h-5 ${newTaskPriority !== 4 ? 'fill-current' : ''}`} />
-                  </button>
+                   <div className="relative">
+                       <button 
+                         type="button"
+                         onClick={() => setIsPriorityOpen(!isPriorityOpen)}
+                         className={`p-2 rounded-md transition-all ${
+                             newTaskPriority === 1 ? 'text-red-500 bg-red-500/10' :
+                             newTaskPriority === 2 ? 'text-orange-500 bg-orange-500/10' :
+                             newTaskPriority === 3 ? 'text-blue-500 bg-blue-500/10' :
+                             'hover:bg-neutral-800 text-neutral-500'
+                         }`}
+                         title={`Priority ${newTaskPriority === 4 ? 'None' : newTaskPriority}`}
+                      >
+                         <Flag className={`w-5 h-5 ${newTaskPriority !== 4 ? 'fill-current' : ''}`} />
+                      </button>
+
+                      {isPriorityOpen && (
+                          <div className="absolute right-0 bottom-full mb-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+                               <div className="p-1">
+                                   <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Priority</div>
+                                   {[1, 2, 3, 4].map((p) => (
+                                       <button 
+                                           key={p}
+                                           type="button"
+                                           onClick={() => {
+                                               setNewTaskPriority(p as 1|2|3|4);
+                                               setIsPriorityOpen(false);
+                                           }}
+                                           className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                       >
+                                           <Flag className={`w-4 h-4 ${
+                                               p === 1 ? 'text-red-500 fill-current' : 
+                                               p === 2 ? 'text-orange-500 fill-current' : 
+                                               p === 3 ? 'text-blue-500 fill-current' : 
+                                               'text-neutral-500'
+                                           }`} />
+                                           <span>{p === 4 ? 'None' : `Priority ${p}`}</span>
+                                           {newTaskPriority === p && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                       </button>
+                                   ))}
+                               </div>
+                           </div>
+                      )}
+                   </div>
               </div>
           </form>
       </div>
