@@ -2,16 +2,38 @@ import React, { useState } from 'react';
 import { addDays, format, isToday } from 'date-fns';
 import { useApp } from '../context/AppContext';
 import TaskItem from './TaskItem';
-import { Plus, LayoutGrid, List } from 'lucide-react';
+import { Plus, LayoutGrid, List, MoreHorizontal, Check } from 'lucide-react';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 const WeekView = () => {
-  const { getTasksForDate, toggleTask, deleteTask, addTask } = useApp();
+  const { getTasksForDate, toggleTask, deleteTask, addTask, labels } = useApp();
   const [layout, setLayout] = useState<'list' | 'board'>('board');
   const [addingTaskDate, setAddingTaskDate] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  
+  // Filtering & Sorting
+  const [sortBy, setSortBy] = useState<'manual' | 'priority' | 'alpha'>('manual');
+  const [showCompleted, setShowCompleted] = useState(true);
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useClickOutside<HTMLDivElement>(() => setIsMoreMenuOpen(false));
 
-  // Start from today, or start of week? User asked for "upcoming", usually today+7
   const days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
+
+  const getFilteredTasks = (date: Date) => {
+      let tasks = getTasksForDate(date);
+      if (selectedLabel) {
+          tasks = tasks.filter(t => t.labels?.includes(selectedLabel));
+      }
+      if (!showCompleted) {
+          tasks = tasks.filter(t => !t.completed);
+      }
+      return tasks.sort((a, b) => {
+          if (sortBy === 'priority') return (a.priority || 4) - (b.priority || 4);
+          if (sortBy === 'alpha') return a.title.localeCompare(b.title);
+          return a.order - b.order;
+      });
+  };
 
   const handleAddSubmit = (e: React.FormEvent, dateStr: string) => {
       e.preventDefault();
@@ -24,7 +46,7 @@ const WeekView = () => {
 
   const DayColumn = ({ date }: { date: Date }) => {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const tasks = getTasksForDate(date);
+      const tasks = getFilteredTasks(date);
       const isAdding = addingTaskDate === dateStr;
 
       return (
@@ -105,6 +127,38 @@ const WeekView = () => {
                  <LayoutGrid className="w-5 h-5" />
              </button>
          </div>
+
+         <div className="relative ml-2" ref={moreMenuRef}>
+             <button 
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400 transition-colors border border-neutral-800 bg-neutral-900"
+             >
+                 <MoreHorizontal className="w-5 h-5" />
+             </button>
+             {isMoreMenuOpen && (
+                 <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+                     <div className="p-1">
+                         <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Sort By</div>
+                         <button onClick={() => { setSortBy('manual'); setIsMoreMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'manual' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}><span>Manual</span></button>
+                         <button onClick={() => { setSortBy('priority'); setIsMoreMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'priority' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}><span>Priority</span></button>
+                         <button onClick={() => { setSortBy('alpha'); setIsMoreMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'alpha' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}><span>Name</span></button>
+                         
+                         <div className="h-px bg-neutral-800 my-1" />
+                         <button onClick={() => { setShowCompleted(!showCompleted); setIsMoreMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 flex items-center gap-2"><span>{showCompleted ? "Hide Completed" : "Show Completed"}</span></button>
+
+                         <div className="h-px bg-neutral-800 my-1" />
+                         <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Filter Label</div>
+                         <button onClick={() => { setSelectedLabel(null); setIsMoreMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${!selectedLabel ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}><span>All Tasks</span></button>
+                         {labels.map(l => (
+                             <button key={l} onClick={() => { setSelectedLabel(l); setIsMoreMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${selectedLabel === l ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}>
+                                 {selectedLabel === l && <Check className="w-3 h-3" />}
+                                 <span className="truncate">{l}</span>
+                             </button>
+                         ))}
+                     </div>
+                 </div>
+             )}
+         </div>
       </div>
 
       {layout === 'board' ? (
@@ -118,7 +172,7 @@ const WeekView = () => {
       ) : (
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8 pt-0 max-w-4xl mx-auto w-full space-y-8 pb-20">
              {days.map(date => {
-                const tasks = getTasksForDate(date);
+                const tasks = getFilteredTasks(date);
                 const dateStr = format(date, 'yyyy-MM-dd');
                 const isAdding = addingTaskDate === dateStr;
 

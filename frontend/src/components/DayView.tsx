@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { Plus, MoreHorizontal, Repeat, Tag, Flag, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import TaskItem from './TaskItem';
@@ -18,6 +19,11 @@ const DayView = () => {
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [newTaskPriority, setNewTaskPriority] = useState<1 | 2 | 3 | 4>(4);
   const [sortBy, setSortBy] = useState<'manual' | 'priority' | 'alpha'>('manual');
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+
+  const moreMenuRef = useClickOutside<HTMLDivElement>(() => setIsMoreMenuOpen(false));
+  const labelDropdownRef = useClickOutside<HTMLDivElement>(() => setIsLabelOpen(false));
+  const priorityDropdownRef = useClickOutside<HTMLDivElement>(() => setIsPriorityOpen(false));
 
   const allTasks = getTasksForDate(selectedDate);
   const filteredByLabel = selectedLabel ? allTasks.filter(t => t.labels?.includes(selectedLabel)) : allTasks;
@@ -95,35 +101,39 @@ const DayView = () => {
                     <span className="text-sm font-normal text-neutral-500">{isToday(selectedDate) || isTomorrow(selectedDate) ? dateSubheader : ''}</span>
                 </h2>
             </div>
-            <div className="relative group">
-                <button className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400 transition-colors">
+            <div className="relative group" ref={moreMenuRef}>
+                <button 
+                  onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                  className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400 transition-colors"
+                >
                     <MoreHorizontal className="w-6 h-6" />
                 </button>
                 {/* Dropdown Menu */}
-                <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top-right">
+                {isMoreMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl transition-all duration-200 z-50 overflow-hidden transform origin-top-right">
                     <div className="p-1">
                         <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Sort By</div>
                         <button 
-                             onClick={() => setSortBy('manual')}
+                             onClick={() => { setSortBy('manual'); setIsMoreMenuOpen(false); }}
                              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'manual' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
                         >
                              <span>Manual (Drag)</span>
                         </button>
                         <button 
-                             onClick={() => setSortBy('priority')}
+                             onClick={() => { setSortBy('priority'); setIsMoreMenuOpen(false); }}
                              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'priority' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
                         >
                              <span>Priority</span>
                         </button>
                         <button 
-                             onClick={() => setSortBy('alpha')}
+                             onClick={() => { setSortBy('alpha'); setIsMoreMenuOpen(false); }}
                              className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'alpha' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
                         >
                              <span>Name</span>
                         </button>
                         <div className="h-px bg-neutral-800 my-1" />
                          <button 
-                            onClick={() => setShowCompleted(!showCompleted)}
+                            onClick={() => { setShowCompleted(!showCompleted); setIsMoreMenuOpen(false); }}
                             className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
                          >
                              <span>{showCompleted ? "Hide Completed" : "Show Completed"}</span>
@@ -132,7 +142,7 @@ const DayView = () => {
                         <div className="h-px bg-neutral-800 my-1" />
                         <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Filter Label</div>
                         <button 
-                            onClick={() => setSelectedLabel(null)}
+                            onClick={() => { setSelectedLabel(null); setIsMoreMenuOpen(false); }}
                             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${!selectedLabel ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
                         >
                             <span>All Tasks</span>
@@ -140,7 +150,7 @@ const DayView = () => {
                         {labels.map(l => (
                              <button 
                                 key={l}
-                                onClick={() => setSelectedLabel(l)}
+                                onClick={() => { setSelectedLabel(l); setIsMoreMenuOpen(false); }}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${selectedLabel === l ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
                             >
                                 {selectedLabel === l && <Check className="w-3 h-3" />}
@@ -149,6 +159,7 @@ const DayView = () => {
                         ))}
                     </div>
                 </div>
+                )}
             </div>
         </div>
 
@@ -232,7 +243,7 @@ const DayView = () => {
                            </span>
                        )}
                        
-                       <div className="relative">
+                       <div className="relative" ref={labelDropdownRef}>
                            <button 
                                 type="button"
                                 onClick={() => setIsLabelOpen(!isLabelOpen)}
@@ -278,7 +289,7 @@ const DayView = () => {
                      <Repeat className="w-5 h-5" />
                   </button>
 
-                   <div className="relative">
+                   <div className="relative" ref={priorityDropdownRef}>
                        <button 
                          type="button"
                          onClick={() => setIsPriorityOpen(!isPriorityOpen)}
@@ -288,7 +299,11 @@ const DayView = () => {
                              newTaskPriority === 3 ? 'text-blue-500 bg-blue-500/10' :
                              'hover:bg-neutral-800 text-neutral-500'
                          }`}
-                         title={`Priority ${newTaskPriority === 4 ? 'None' : newTaskPriority}`}
+                         title={`Priority: ${
+                             newTaskPriority === 1 ? 'High' : 
+                             newTaskPriority === 2 ? 'Medium' : 
+                             newTaskPriority === 3 ? 'Low' : 'None'
+                         }`}
                       >
                          <Flag className={`w-5 h-5 ${newTaskPriority !== 4 ? 'fill-current' : ''}`} />
                       </button>
@@ -297,7 +312,9 @@ const DayView = () => {
                           <div className="absolute right-0 bottom-full mb-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden">
                                <div className="p-1">
                                    <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Priority</div>
-                                   {[1, 2, 3, 4].map((p) => (
+                                   {[1, 2, 3, 4].map((p) => {
+                                       const label = p === 1 ? 'High' : p === 2 ? 'Medium' : p === 3 ? 'Low' : 'None';
+                                       return (
                                        <button 
                                            key={p}
                                            type="button"
@@ -313,10 +330,11 @@ const DayView = () => {
                                                p === 3 ? 'text-blue-500 fill-current' : 
                                                'text-neutral-500'
                                            }`} />
-                                           <span>{p === 4 ? 'None' : `Priority ${p}`}</span>
+                                           <span>{label}</span>
                                            {newTaskPriority === p && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
                                        </button>
-                                   ))}
+                                       );
+                                   })}
                                </div>
                            </div>
                       )}
