@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Tag, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Tag, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
 
 
 const FiltersAndLabels = () => {
-  const { labels, tasks, deleteLabel, renameLabel, setFilterType, setActiveLabel, setViewMode } = useApp();
+  const { labels, tasks, deleteLabel, renameLabel, setFilterType, setActiveLabel, setViewMode, createLabel } = useApp();
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -43,6 +43,32 @@ const FiltersAndLabels = () => {
                 <Tag className="w-5 h-5 text-indigo-500" />
                 Labels
             </h3>
+            
+            <form 
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const input = form.elements.namedItem('newLabel') as HTMLInputElement;
+                    if (input.value.trim()) {
+                        createLabel(input.value.trim()); 
+                        input.value = '';
+                    }
+                }}
+                className="mb-4 flex gap-2"
+            >
+                <input 
+                    name="newLabel"
+                    type="text" 
+                    placeholder="New label name..." 
+                    className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-200 outline-none focus:border-indigo-500 transition-colors"
+                />
+                <button 
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg transition-colors"
+                >
+                    <Plus className="w-4 h-4" />
+                </button>
+            </form>
             
             <div className="space-y-2">
                 {labels.length === 0 ? (

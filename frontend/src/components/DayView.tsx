@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, MoreHorizontal, Repeat, Tag } from 'lucide-react';
+import { Plus, MoreHorizontal, Repeat, Tag, Flag, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import TaskItem from './TaskItem';
 import { format, isToday, isTomorrow } from 'date-fns';
@@ -15,9 +15,19 @@ const DayView = () => {
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLabelOpen, setIsLabelOpen] = useState(false);
+  const [newTaskPriority, setNewTaskPriority] = useState<1 | 2 | 3 | 4>(4);
+  const [sortBy, setSortBy] = useState<'manual' | 'priority' | 'alpha'>('manual');
 
   const allTasks = getTasksForDate(selectedDate);
-  const tasks = showCompleted ? allTasks : allTasks.filter(t => !t.completed);
+  const filteredByLabel = selectedLabel ? allTasks.filter(t => t.labels?.includes(selectedLabel)) : allTasks;
+  const filteredByCompletion = showCompleted ? filteredByLabel : filteredByLabel.filter(t => !t.completed);
+  
+  const tasks = [...filteredByCompletion].sort((a, b) => {
+      if (sortBy === 'priority') return (a.priority || 4) - (b.priority || 4);
+      if (sortBy === 'alpha') return a.title.localeCompare(b.title);
+      return a.order - b.order;
+  });
+
   const progress = dailProgress(selectedDate);
   
   const sensors = useSensors(
@@ -30,7 +40,7 @@ const DayView = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (active.id !== over?.id) {
+    if (active.id !== over?.id && sortBy === 'manual') {
       reorderTasks(active.id as string, over?.id as string);
     }
   };
@@ -57,7 +67,7 @@ const DayView = () => {
       // But I don't have the ID.
       
       // Proper fix: Update addTask signature.
-      addTask(newTaskTitle, format(selectedDate, 'yyyy-MM-dd'), rule, selectedLabel ? [selectedLabel] : []);
+      addTask(newTaskTitle, format(selectedDate, 'yyyy-MM-dd'), rule, selectedLabel ? [selectedLabel] : [], newTaskPriority);
       
       setNewTaskTitle('');
       setIsRecurringMode(false);
@@ -91,15 +101,51 @@ const DayView = () => {
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 top-full mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top-right">
                     <div className="p-1">
-                        <button className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2">
-                             <span>Sort by Date</span>
+                        <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Sort By</div>
+                        <button 
+                             onClick={() => setSortBy('manual')}
+                             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'manual' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
+                        >
+                             <span>Manual (Drag)</span>
                         </button>
+                        <button 
+                             onClick={() => setSortBy('priority')}
+                             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'priority' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
+                        >
+                             <span>Priority</span>
+                        </button>
+                        <button 
+                             onClick={() => setSortBy('alpha')}
+                             className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${sortBy === 'alpha' ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
+                        >
+                             <span>Name</span>
+                        </button>
+                        <div className="h-px bg-neutral-800 my-1" />
                          <button 
                             onClick={() => setShowCompleted(!showCompleted)}
                             className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
                          >
                              <span>{showCompleted ? "Hide Completed" : "Show Completed"}</span>
                         </button>
+                        
+                        <div className="h-px bg-neutral-800 my-1" />
+                        <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Filter Label</div>
+                        <button 
+                            onClick={() => setSelectedLabel(null)}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${!selectedLabel ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
+                        >
+                            <span>All Tasks</span>
+                        </button>
+                        {labels.map(l => (
+                             <button 
+                                key={l}
+                                onClick={() => setSelectedLabel(l)}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${selectedLabel === l ? 'text-indigo-400 bg-indigo-500/10' : 'text-neutral-400 hover:bg-neutral-800'}`}
+                            >
+                                {selectedLabel === l && <Check className="w-3 h-3" />}
+                                <span className="truncate">{l}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -229,6 +275,20 @@ const DayView = () => {
                      title="Toggle Daily Repeat"
                   >
                      <Repeat className="w-5 h-5" />
+                  </button>
+
+                   <button 
+                     type="button"
+                     onClick={() => setNewTaskPriority(prev => prev === 1 ? 4 : (prev - 1) as 1|2|3|4)}
+                     className={`p-2 rounded-md transition-all ${
+                         newTaskPriority === 1 ? 'text-red-500 bg-red-500/10' :
+                         newTaskPriority === 2 ? 'text-orange-500 bg-orange-500/10' :
+                         newTaskPriority === 3 ? 'text-blue-500 bg-blue-500/10' :
+                         'hover:bg-neutral-800 text-neutral-500'
+                     }`}
+                     title={`Priority ${newTaskPriority === 4 ? 'None' : newTaskPriority}`}
+                  >
+                     <Flag className={`w-5 h-5 ${newTaskPriority !== 4 ? 'fill-current' : ''}`} />
                   </button>
               </div>
           </form>

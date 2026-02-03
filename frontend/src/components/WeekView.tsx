@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { addDays, format, isToday, isTomorrow, startOfWeek } from 'date-fns';
+import { addDays, format, isToday } from 'date-fns';
 import { useApp } from '../context/AppContext';
 import TaskItem from './TaskItem';
 import { Plus, LayoutGrid, List } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { DndContext, closestCorners } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 const WeekView = () => {
   const { getTasksForDate, toggleTask, deleteTask, addTask } = useApp();

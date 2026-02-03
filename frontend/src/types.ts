@@ -23,6 +23,7 @@ export interface Task {
   // Organization
   labels?: string[];
   isFavorite?: boolean;
+  priority?: 1 | 2 | 3 | 4; // 1 = High, 4 = None/Low
 }
 
 export interface DayData {

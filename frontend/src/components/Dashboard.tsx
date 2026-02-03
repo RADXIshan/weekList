@@ -1,4 +1,3 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   BarChart, 
@@ -12,9 +11,8 @@ import {
   Area
 } from 'recharts';
 import { CheckCircle2, Trophy, Flame, PieChart, Trash2, Calendar, TrendingUp } from 'lucide-react';
-import { format } from 'date-fns';
 
-const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: any, color: string }) => (
+const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: React.ElementType, color: string }) => (
   <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl flex items-center gap-4">
     <div className={`w-12 h-12 rounded-xl ${color} bg-opacity-20 flex items-center justify-center`}>
       <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />

@@ -14,7 +14,7 @@ interface AppContextType {
   activeLabel: string | null;
   setActiveLabel: (label: string | null) => void;
   
-  addTask: (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[]) => void;
+  addTask: (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[], priority?: 1 | 2 | 3 | 4) => void;
   toggleTask: (taskId: string) => void;
   deleteTask: (taskId: string) => void;
   reorderTasks: (activeId: string, overId: string) => void;
@@ -57,24 +57,25 @@ const getNextDate = (currentDate: string, rule: RecurringRule): string => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<Task[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
+    let initial: Task[] = [];
     if (stored) {
       try {
-        return JSON.parse(stored);
+        initial = JSON.parse(stored);
       } catch (e) {
         console.error("Failed to parse tasks", e);
       }
     }
-    return [];
-  });
-  
-  // Sanitize tasks to ensure compatibility
-  useEffect(() => {
-    setTasks(prev => prev.map(t => ({
+    // Sanitize tasks to ensure compatibility
+    return initial.map(t => ({
       ...t,
       labels: t.labels || [],
-      isFavorite: t.isFavorite || false
-    })));
-  }, []);
+      isFavorite: t.isFavorite || false,
+      priority: t.priority || 4
+    }));
+  });
+  
+
+
 
   const [labels, setLabels] = useState<string[]>(() => {
     const stored = localStorage.getItem('todoist-labels');
@@ -95,7 +96,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }, [tasks]);
 
-  const addTask = (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[]) => {
+  const addTask = (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[], priority: 1 | 2 | 3 | 4 = 4) => {
     if (!title.trim()) return;
     
     // Determine order: last in list for that date
@@ -112,7 +113,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       order: tasks.length, 
       isRecurring: !!recurringRule,
       recurringRule,
-      labels: initialLabels || []
+      labels: initialLabels || [],
+      priority
     };
     
     setTasks(prev => [...prev, newTask]);

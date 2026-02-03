@@ -48,7 +48,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
           "shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300",
           task.completed
             ? "bg-indigo-500 border-indigo-500 text-white"
-            : "border-neutral-600 text-transparent hover:border-indigo-400"
+            : (
+                !task.priority || task.priority === 4 ? "border-neutral-600 hover:border-indigo-400" :
+                task.priority === 1 ? "border-red-500 bg-red-500/10 hover:bg-red-500/20" :
+                task.priority === 2 ? "border-orange-500 bg-orange-500/10 hover:bg-orange-500/20" :
+                "border-blue-500 bg-blue-500/10 hover:bg-blue-500/20"
+              )
         )}
       >
         <Check className={cn("w-4 h-4", task.completed ? "opacity-100" : "opacity-0")} />
