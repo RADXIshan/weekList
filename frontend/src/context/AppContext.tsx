@@ -5,6 +5,8 @@ import type { Task, RecurringRule } from '../types';
 
 interface AppContextType {
   tasks: Task[];
+  userName: string | null;
+  setUserName: (name: string) => void;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   viewMode: 'day' | 'week' | 'dashboard' | 'filters' | 'filters-management';
@@ -38,17 +40,15 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'todoist-clone-data-v2'; // New key for migration safety
+const STORAGE_KEY = 'todoist-clone-data-v2';
+const USER_PROFILE_KEY = 'todoist-user-profile';
 
-// --- Helper for Recurring ---
 const getNextDate = (currentDate: string, rule: RecurringRule): string => {
   const date = new Date(currentDate);
   if (rule.frequency === 'daily') {
     return format(addDays(date, rule.interval || 1), 'yyyy-MM-dd');
   }
   if (rule.frequency === 'weekly') {
-     // Simplification: just +7 days for now, or +1 week
-     // TODO: Handle specific days of week logic later
      return format(addDays(date, 7), 'yyyy-MM-dd');
   }
   return format(addDays(date, 1), 'yyyy-MM-dd'); 
@@ -65,7 +65,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error("Failed to parse tasks", e);
       }
     }
-    // Sanitize tasks to ensure compatibility
     return initial.map(t => ({
       ...t,
       labels: t.labels || [],
@@ -73,13 +72,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       priority: t.priority || 4
     }));
   });
-  
 
-
+  const [userName, setUserName] = useState<string | null>(() => {
+      const stored = localStorage.getItem(USER_PROFILE_KEY);
+      return stored ? stored : null;
+  });
 
   const [labels, setLabels] = useState<string[]>(() => {
     const stored = localStorage.getItem('todoist-labels');
-    return stored ? JSON.parse(stored) : ['Work', 'Personal']; // Defaults
+    return stored ? JSON.parse(stored) : ['Work', 'Personal']; 
   });
 
   useEffect(() => {
@@ -91,18 +92,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [filterType, setFilterType] = useState<'favorites' | 'label' | null>(null);
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
 
-  // Persist
+  // Persist Tasks
   useEffect(() => {
      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }, [tasks]);
 
+  // Persist User Name
+  useEffect(() => {
+      if (userName) {
+          localStorage.setItem(USER_PROFILE_KEY, userName);
+      }
+  }, [userName]);
+
   const addTask = (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[], priority: 1 | 2 | 3 | 4 = 4) => {
     if (!title.trim()) return;
-    
-    // Determine order: last in list for that date
-    // (Actually simplified: just last in global list or last for that date)
-    // For DND, we normally need order relative to the view.
-    // Let's just use existing tasks length + 1.
     
     const newTask: Task = {
       id: uuidv4(),
@@ -125,32 +128,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const task = prev.find(t => t.id === taskId);
       if (!task) return prev;
       
-      // Recurring logic
       if (task.isRecurring && task.recurringRule && !task.completed) {
-         // Completing a recurring task:
-         // 1. Create a completed history instance
          const historyTask: Task = {
              ...task,
              id: uuidv4(),
              completed: true,
-             isRecurring: false, // History item is static
+             isRecurring: false, 
              parentId: task.id,
-             date: task.date // Keep history on the day it was done
+             date: task.date 
          };
          
-         // 2. Move original task to next date
          const nextDate = getNextDate(task.date, task.recurringRule);
          const updatedOriginal = {
              ...task,
              date: nextDate,
-             completed: false // Keep it open for next time
+             completed: false 
          };
          
-         // Remove original, add updated + history
          return [...prev.filter(t => t.id !== taskId), updatedOriginal, historyTask];
       }
 
-      // Normal toggle
       return prev.map(t => 
         t.id === taskId ? { ...t, completed: !t.completed } : t
       );
@@ -189,18 +186,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteLabel = (name: string) => {
     setLabels(prev => prev.filter(l => l !== name));
-    // Also remove from tasks
     setTasks(prev => prev.map(t => ({
       ...t,
       labels: (t.labels || []).filter(l => l !== name)
     })));
     
-    // If we are currently viewing this label, switch back to day view
     if (activeLabel === name) {
         setActiveLabel(null);
         if (filterType === 'label') {
              setFilterType(null);
-             setViewMode('day'); // Or fallback to filters list
+             setViewMode('day'); 
         }
     }
   };
@@ -211,7 +206,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     setLabels(prev => prev.map(l => l === oldName ? trimmedNew : l));
     
-    // Update tasks
     setTasks(prev => prev.map(t => ({
         ...t,
         labels: (t.labels || []).map(l => l === oldName ? trimmedNew : l)
@@ -246,11 +240,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return tasks
         .filter(t => t.date === targetStr)
         .sort(() => {
-             // Basic sort: incomplete first, then completed? 
-             // Or maintain order?
-             // Since we have 'reorderTasks', let's trust array order for now.
-             // But usually completed go to bottom.
-             // Let's rely on array order (user sort) primarily.
              return 0;
         });
   };
@@ -265,7 +254,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getWeeklyStats = () => {
     const today = new Date();
     const stats = [];
-    // Last 7 days including today? Or current week? Let's do last 7 days for trend
     for (let i = 6; i >= 0; i--) {
         const d = addDays(today, -i);
         const dateStr = format(d, 'yyyy-MM-dd');
@@ -281,8 +269,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const getMonthlyStats = () => {
-      // Simplified: Just showing total completed tasks per month for the current year
-      // This is a bit heavy if there are many tasks, but fine for local MVP
       const currentYear = new Date().getFullYear();
       const stats = Array.from({ length: 12 }, (_, i) => ({
           name: format(new Date(currentYear, i, 1), 'MMM'),
@@ -299,22 +285,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const getStreak = () => {
-    // Basic streak calculation: consecutive days ending today or yesterday where >= 1 task was completed
     let streak = 0;
     const today = new Date();
-    // Check up to 365 days back
     for (let i = 0; i < 365; i++) {
          const date = addDays(today, -i);
          const dateStr = format(date, 'yyyy-MM-dd');
-         // If i=0 (today) and no tasks completed yet, don't break streak if yesterday was completed
-         // But if today has completion, streak++
          const hasCompletion = tasks.some(t => t.date === dateStr && t.completed);
          
          if (hasCompletion) {
              streak++;
          } else {
-             if (i === 0) continue; // Skip today if incomplete, check yesterday
-             break; // Gap found
+             if (i === 0) continue; 
+             break; 
          }
     }
     return streak;
@@ -323,12 +305,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetMetrics = () => {
       setTasks([]);
       setLabels(['Work', 'Personal']);
+      setUserName(null);
+      localStorage.removeItem(USER_PROFILE_KEY);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('todoist-labels');
       setSelectedDate(new Date());
   };
 
   return (
     <AppContext.Provider value={{
       tasks,
+      userName,
+      setUserName,
       selectedDate,
       setSelectedDate,
       viewMode,
@@ -360,7 +348,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useApp = () => {
   const context = useContext(AppContext);
   if (!context) throw new Error('useApp must be used within AppProvider');

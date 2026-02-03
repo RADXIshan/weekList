@@ -57,10 +57,10 @@ const Sidebar = () => {
       {/* Header Profile/Title */}
       <div className="flex items-center gap-3 mb-8 px-2">
          <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold border border-indigo-500/30">
-            I
+            {(useApp().userName || 'I').charAt(0).toUpperCase()}
          </div>
          <div>
-             <h1 className="text-sm font-semibold text-neutral-200">Ishan's Tasks</h1>
+             <h1 className="text-sm font-semibold text-neutral-200">{(useApp().userName || 'My').split(' ')[0]}'s Tasks</h1>
          </div>
       </div>
 

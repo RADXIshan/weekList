@@ -209,7 +209,7 @@ const DayView = () => {
                  </SortableContext>
              </DndContext>
          )}
-                  {/* Add Task Button (Todoist Style) */}
+                  {/* Add Task Button (weekList Style) */}
           <form onSubmit={handleAdd} className="mt-2 group relative">
               <div className="flex items-center gap-3 px-3 py-3 text-neutral-400 group-hover:text-indigo-400 transition-colors cursor-text bg-neutral-900/50 rounded-xl border border-transparent hover:border-neutral-800">
                   <button 
