@@ -35,12 +35,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
         ref={setNodeRef}
         style={style}
         className={cn(
-            "group flex items-center gap-4 p-4 rounded-xl bg-neutral-900/50 hover:bg-neutral-800 transition-all duration-300 border border-transparent hover:border-neutral-700",
+            "group flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl bg-neutral-900/50 hover:bg-neutral-800 transition-all duration-300 border border-transparent hover:border-neutral-700",
             isDragging && "z-50 bg-neutral-800 shadow-xl border-neutral-700"
         )}
     >
-      <div {...attributes} {...listeners} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400">
-          <GripVertical className="w-5 h-5" />
+      <div {...attributes} {...listeners} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400 shrink-0">
+          <GripVertical className="w-4 h-4 sm:w-5 sm:h-5" />
       </div>
       <button
         onClick={() => onToggle(task.id)}

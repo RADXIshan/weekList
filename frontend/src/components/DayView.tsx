@@ -100,7 +100,7 @@ const DayView = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
             <div>
-                <h2 className="text-3xl font-bold text-neutral-100 tracking-tight flex items-baseline gap-3">
+                <h2 className="text-2xl md:text-3xl font-bold text-neutral-100 tracking-tight flex items-baseline gap-2 md:gap-3">
                     {getDateHeader(selectedDate)}
                     <span className="text-sm font-normal text-neutral-500">{isToday(selectedDate) || isTomorrow(selectedDate) ? dateSubheader : ''}</span>
                 </h2>
@@ -215,10 +215,10 @@ const DayView = () => {
          )}
                   {/* Add Task Button (weekList Style) */}
           <form onSubmit={handleAdd} className="mt-2 group relative">
-              <div className="flex items-center gap-3 px-3 py-3 text-neutral-400 group-hover:text-indigo-400 transition-colors cursor-text bg-neutral-900/50 rounded-xl border border-transparent hover:border-neutral-800">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 py-2 sm:py-3 text-neutral-400 group-hover:text-indigo-400 transition-colors cursor-text bg-neutral-900/50 rounded-xl border border-transparent hover:border-neutral-800">
                   <button 
                      type="submit"
-                     className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-indigo-500/20 text-indigo-500 opacity-60 group-hover:opacity-100 transition-all"
+                     className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-indigo-500/20 text-indigo-500 opacity-60 group-hover:opacity-100 transition-all shrink-0"
                   >
                       <Plus className="w-5 h-5" />
                   </button>
@@ -227,20 +227,20 @@ const DayView = () => {
                      type="text"
                      value={newTaskTitle}
                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                     placeholder={isRecurringMode ? "Add recurring task (Daily)..." : "Add task"}
-                     className="bg-transparent border-none outline-none text-neutral-300 placeholder:text-neutral-500 flex-1 text-base font-medium"
+                     placeholder={isRecurringMode ? "Add recurring task..." : "Add task"}
+                     className="bg-transparent border-none outline-none text-neutral-300 placeholder:text-neutral-500 flex-1 text-base font-medium min-w-[120px]"
                      autoComplete="off"
                   />
                   
                   {/* Label Selector */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 ml-auto">
                        {selectedLabel && (
-                           <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-full flex items-center gap-1">
-                               {selectedLabel}
+                           <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-full flex items-center gap-1 max-w-[100px] truncate">
+                               <span className="truncate">{selectedLabel}</span>
                                <button 
                                    type="button" 
                                    onClick={(e) => { e.stopPropagation(); setSelectedLabel(null); }}
-                                   className="hover:text-white"
+                                   className="hover:text-white shrink-0"
                                >
                                    ×
                                </button>
@@ -251,10 +251,10 @@ const DayView = () => {
                            <button 
                                 type="button"
                                 onClick={() => setIsLabelOpen(!isLabelOpen)}
-                                className={`p-2 rounded-md transition-all ${selectedLabel ? 'text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
+                                className={`p-1.5 sm:p-2 rounded-md transition-all ${selectedLabel ? 'text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
                                 title="Add Label"
                            >
-                                <Tag className="w-5 h-5" />
+                                <Tag className="w-4 h-4 sm:w-5 sm:h-5" />
                            </button>
                            
                            {isLabelOpen && (
@@ -287,17 +287,17 @@ const DayView = () => {
                   <button 
                      type="button"
                      onClick={() => setIsRecurringMode(!isRecurringMode)}
-                     className={`p-2 rounded-md transition-all ${isRecurringMode ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
+                     className={`p-1.5 sm:p-2 rounded-md transition-all ${isRecurringMode ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
                      title="Toggle Daily Repeat"
                   >
-                     <Repeat className="w-5 h-5" />
+                     <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
 
                    <div className="relative" ref={priorityDropdownRef}>
                        <button 
                          type="button"
                          onClick={() => setIsPriorityOpen(!isPriorityOpen)}
-                         className={`p-2 rounded-md transition-all ${
+                         className={`p-1.5 sm:p-2 rounded-md transition-all ${
                              newTaskPriority === 1 ? 'text-red-500 bg-red-500/10' :
                              newTaskPriority === 2 ? 'text-orange-500 bg-orange-500/10' :
                              newTaskPriority === 3 ? 'text-blue-500 bg-blue-500/10' :
@@ -309,7 +309,7 @@ const DayView = () => {
                              newTaskPriority === 3 ? 'Low' : 'None'
                          }`}
                       >
-                         <Flag className={`w-5 h-5 ${newTaskPriority !== 4 ? 'fill-current' : ''}`} />
+                         <Flag className={`w-4 h-4 sm:w-5 sm:h-5 ${newTaskPriority !== 4 ? 'fill-current' : ''}`} />
                       </button>
 
                       {isPriorityOpen && (
