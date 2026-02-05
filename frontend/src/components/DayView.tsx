@@ -12,11 +12,12 @@ import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrate
 const DayView = () => {
   const { selectedDate, getTasksForDate, dailProgress, addTask, toggleTask, deleteTask, reorderTasks, labels } = useApp();
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [isRecurringMode, setIsRecurringMode] = useState(false);
+  const [recurringMode, setRecurringMode] = useState<'none' | 'daily' | 'weekly'>('none');
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLabelOpen, setIsLabelOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [newTaskPriority, setNewTaskPriority] = useState<1 | 2 | 3 | 4>(4);
   const [sortBy, setSortBy] = useState<'manual' | 'priority' | 'alpha'>('manual');
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -24,6 +25,7 @@ const DayView = () => {
   const moreMenuRef = useClickOutside<HTMLDivElement>(() => setIsMoreMenuOpen(false));
   const labelDropdownRef = useClickOutside<HTMLDivElement>(() => setIsLabelOpen(false));
   const priorityDropdownRef = useClickOutside<HTMLDivElement>(() => setIsPriorityOpen(false));
+  const recurringDropdownRef = useClickOutside<HTMLDivElement>(() => setIsRecurringOpen(false));
 
   const allTasks = getTasksForDate(selectedDate);
   const filteredByLabel = selectedLabel ? allTasks.filter(t => t.labels?.includes(selectedLabel)) : allTasks;
@@ -59,29 +61,12 @@ const DayView = () => {
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTaskTitle.trim()) {
-      const rule: RecurringRule | undefined = isRecurringMode ? { frequency: 'daily' } : undefined;
-      // We need to capture the ID of the new task to add label, but addTask currently returns void.
-      // We might need to change addTask to return the ID or handle it differently.
-      // For now, let's simplify: strict separation? 
-      // Actually, addTask implementation in AppContext generates ID.
-      // We can modify addTask to accept initial labels.
+      const rule: RecurringRule | undefined = recurringMode !== 'none' ? { frequency: recurringMode } : undefined;
       
-      // Since changing addTask signature might be risky for other components, 
-      // let's update addTask to accept optional labels or just return the ID.
-      // Let's assume we modify addTask signature in this same step or previous? 
-      // Wait, I haven't modified addTask signature in AppContext yet.
-      // Logic: I should modify AppContext.addTask to accept labels as optional arg.
-      
-      // Temporary fallback: we can't add label if we don't have ID.
-      // Let's modify AppContext.addTask in the next step.
-      // For now, I will assume addTask accepts labels as 4th arg or I will call addLabelToTask immediately?
-      // But I don't have the ID.
-      
-      // Proper fix: Update addTask signature.
       addTask(newTaskTitle, format(selectedDate, 'yyyy-MM-dd'), rule, selectedLabel ? [selectedLabel] : [], newTaskPriority);
       
       setNewTaskTitle('');
-      setIsRecurringMode(false);
+      setRecurringMode('none');
       setSelectedLabel(null);
     }
   };
@@ -213,7 +198,7 @@ const DayView = () => {
                  </SortableContext>
              </DndContext>
          )}
-                  {/* Add Task Button (weekList Style) */}
+         {/* Add Task Button (weekList Style) */}
           <form onSubmit={handleAdd} className="mt-2 group relative">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 py-2 sm:py-3 text-neutral-400 group-hover:text-indigo-400 transition-colors cursor-text bg-neutral-900/50 rounded-xl border border-transparent hover:border-neutral-800">
                   <button 
@@ -227,7 +212,7 @@ const DayView = () => {
                      type="text"
                      value={newTaskTitle}
                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                     placeholder={isRecurringMode ? "Add recurring task..." : "Add task"}
+                     placeholder={recurringMode !== 'none' ? `Add ${recurringMode} task...` : "Add task"}
                      className="bg-transparent border-none outline-none text-neutral-300 placeholder:text-neutral-500 flex-1 text-base font-medium min-w-[120px]"
                      autoComplete="off"
                   />
@@ -284,14 +269,48 @@ const DayView = () => {
                        </div>
                   </div>
 
-                  <button 
-                     type="button"
-                     onClick={() => setIsRecurringMode(!isRecurringMode)}
-                     className={`p-1.5 sm:p-2 rounded-md transition-all ${isRecurringMode ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
-                     title="Toggle Daily Repeat"
-                  >
-                     <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
+                  <div className="relative" ref={recurringDropdownRef}>
+                      <button 
+                          type="button"
+                          onClick={() => setIsRecurringOpen(!isRecurringOpen)}
+                          className={`p-1.5 sm:p-2 rounded-md transition-all ${recurringMode !== 'none' ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
+                          title="Recurring Options"
+                      >
+                         <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+
+                       {isRecurringOpen && (
+                          <div className="absolute right-0 bottom-full mb-2 w-40 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+                               <div className="p-1">
+                                   <div className="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Recurring</div>
+                                   <button 
+                                       type="button"
+                                       onClick={() => { setRecurringMode('none'); setIsRecurringOpen(false); }}
+                                       className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                   >
+                                       <span>No Repeat</span>
+                                       {recurringMode === 'none' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                   </button>
+                                   <button 
+                                       type="button"
+                                       onClick={() => { setRecurringMode('daily'); setIsRecurringOpen(false); }}
+                                       className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                   >
+                                       <span>Daily</span>
+                                       {recurringMode === 'daily' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                   </button>
+                                   <button 
+                                       type="button"
+                                       onClick={() => { setRecurringMode('weekly'); setIsRecurringOpen(false); }}
+                                       className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                   >
+                                       <span>Weekly</span>
+                                       {recurringMode === 'weekly' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                   </button>
+                               </div>
+                           </div>
+                       )}
+                   </div>
 
                    <div className="relative" ref={priorityDropdownRef}>
                        <button 

@@ -13,14 +13,17 @@ const WeekView = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   
   // New Task State
+  // New Task State
   const [newTaskPriority, setNewTaskPriority] = useState<1 | 2 | 3 | 4>(4);
-  const [isRecurringMode, setIsRecurringMode] = useState(false);
+  const [recurringMode, setRecurringMode] = useState<'none' | 'daily' | 'weekly'>('none');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLabelOpen, setIsLabelOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false); // Added for recurring dropdown
 
   const labelDropdownRef = useClickOutside<HTMLDivElement>(() => setIsLabelOpen(false));
   const priorityDropdownRef = useClickOutside<HTMLDivElement>(() => setIsPriorityOpen(false));
+  const recurringDropdownRef = useClickOutside<HTMLDivElement>(() => setIsRecurringOpen(false));
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
 
@@ -28,14 +31,14 @@ const WeekView = () => {
       setNewTaskTitle('');
       setAddingTaskDate(null);
       setNewTaskPriority(4);
-      setIsRecurringMode(false);
+      setRecurringMode('none');
       setSelectedLabel(null);
   };
 
   const handleAddSubmit = (e: React.FormEvent, dateStr: string) => {
       e.preventDefault();
       if (newTaskTitle.trim()) {
-          const rule: RecurringRule | undefined = isRecurringMode ? { frequency: 'daily' } : undefined;
+          const rule: RecurringRule | undefined = recurringMode !== 'none' ? { frequency: recurringMode } : undefined;
           addTask(newTaskTitle, dateStr, rule, selectedLabel ? [selectedLabel] : [], newTaskPriority);
           resetForm();
       }
@@ -50,7 +53,7 @@ const WeekView = () => {
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 className="w-full bg-transparent text-neutral-200 px-2 py-1.5 rounded-lg text-sm outline-none placeholder:text-neutral-600 mb-2"
-                placeholder="Task title..."
+                placeholder={recurringMode !== 'none' ? `Add ${recurringMode} task...` : "Task title..."}
                 autoFocus={autoFocus}
             />
             
@@ -144,15 +147,49 @@ const WeekView = () => {
                       )}
                     </div>
 
-                    {/* Recurring Toggle */}
-                    <button 
-                        type="button"
-                        onClick={() => setIsRecurringMode(!isRecurringMode)}
-                        className={`p-1.5 rounded-md transition-all ${isRecurringMode ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
-                        title="Is Daily Recurring"
-                    >
-                        <Repeat className="w-4 h-4" />
-                    </button>
+                    {/* Recurring Selector */}
+                    <div className="relative" ref={recurringDropdownRef}>
+                        <button 
+                            type="button"
+                            onClick={() => setIsRecurringOpen(!isRecurringOpen)}
+                            className={`p-1.5 rounded-md transition-all ${recurringMode !== 'none' ? 'bg-indigo-500/20 text-indigo-400' : 'hover:bg-neutral-800 text-neutral-500'}`}
+                            title="Recurring Options"
+                        >
+                            <Repeat className="w-4 h-4" />
+                        </button>
+                        
+                        {isRecurringOpen && (
+                            <div className="absolute left-0 top-full mt-1 w-40 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                <div className="p-1">
+                                    <div className="px-2 py-1 text-xs text-neutral-500 font-semibold uppercase">Recurring</div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setRecurringMode('none'); setIsRecurringOpen(false); }}
+                                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                    >
+                                        <span>No Repeat</span>
+                                        {recurringMode === 'none' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setRecurringMode('daily'); setIsRecurringOpen(false); }}
+                                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                    >
+                                        <span>Daily</span>
+                                        {recurringMode === 'daily' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setRecurringMode('weekly'); setIsRecurringOpen(false); }}
+                                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                    >
+                                        <span>Weekly</span>
+                                        {recurringMode === 'weekly' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
