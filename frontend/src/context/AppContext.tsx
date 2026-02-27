@@ -19,6 +19,7 @@ interface AppContextType {
   addTask: (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[], priority?: 1 | 2 | 3 | 4) => void;
   toggleTask: (taskId: string) => void;
   deleteTask: (taskId: string) => void;
+  editTask: (taskId: string, newTitle: string) => void;
   reorderTasks: (activeId: string, overId: string) => void;
   toggleFavorite: (taskId: string) => void;
   // Label management
@@ -157,6 +158,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteTask = (taskId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
+
+  const editTask = (taskId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    setTasks(prev => prev.map(t => 
+      t.id === taskId ? { ...t, title: newTitle.trim() } : t
+    ));
+  };
   
   const reorderTasks = (activeId: string, overId: string) => {
       setTasks((items) => {
@@ -169,7 +177,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const [movedItem] = newItems.splice(oldIndex, 1);
         newItems.splice(newIndex, 0, movedItem);
         
-        return newItems;
+        // Update the order property to match the new array position
+        return newItems.map((item, index) => ({
+          ...item,
+          order: index
+        }));
       });
   };
 
@@ -328,6 +340,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addTask,
       toggleTask,
       deleteTask,
+      editTask,
       reorderTasks,
       toggleFavorite,
       getWeeklyStats,

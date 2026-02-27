@@ -4,7 +4,7 @@ import type { Task } from '../types';
 import { cn } from '../lib/utils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Edit2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface TaskItemProps {
@@ -14,7 +14,10 @@ interface TaskItemProps {
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
-  const { toggleFavorite } = useApp();
+  const { toggleFavorite, editTask } = useApp();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editTitle, setEditTitle] = React.useState(task.title);
+
   const {
     attributes,
     listeners,
@@ -28,6 +31,22 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1
+  };
+
+  const handleEditSave = () => {
+    if (editTitle.trim() && editTitle !== task.title) {
+        editTask(task.id, editTitle);
+    }
+    setIsEditing(false);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+        handleEditSave();
+    } else if (e.key === 'Escape') {
+        setEditTitle(task.title);
+        setIsEditing(false);
+    }
   };
 
   return (
@@ -60,14 +79,28 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
       </button>
 
       <div className="flex-1 min-w-0">
-          <span
-            className={cn(
-              "block text-base font-medium transition-all duration-300 truncate",
-              task.completed ? "text-neutral-500 line-through decoration-neutral-600" : "text-neutral-200"
-            )}
-          >
-            {task.title}
-          </span>
+          {isEditing ? (
+              <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={handleEditSave}
+                  onKeyDown={handleEditKeyDown}
+                  className="w-full bg-neutral-900 border border-indigo-500 rounded px-2 py-1 text-base text-neutral-200 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  autoFocus
+                  onPointerDown={(e) => e.stopPropagation()}
+              />
+          ) : (
+              <span
+                className={cn(
+                  "block text-base font-medium transition-all duration-300 truncate",
+                  task.completed ? "text-neutral-500 line-through decoration-neutral-600" : "text-neutral-200"
+                )}
+                onDoubleClick={() => setIsEditing(true)}
+              >
+                {task.title}
+              </span>
+          )}
           {task.labels && task.labels.length > 0 && (
               <div className="flex gap-2 mt-1">
                   {task.labels.map(label => (
@@ -76,6 +109,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
               </div>
           )}
       </div>
+
+      <button
+        onClick={() => setIsEditing(true)}
+        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 text-neutral-500 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-all duration-200"
+        title="Edit Task"
+      >
+          <Edit2 className="w-4 h-4" />
+      </button>
 
       <button
         onClick={() => toggleFavorite(task.id)}
