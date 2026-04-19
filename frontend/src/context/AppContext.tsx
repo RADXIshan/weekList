@@ -168,20 +168,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const reorderTasks = (activeId: string, overId: string) => {
       setTasks((items) => {
+        const activeItem = items.find(i => i.id === activeId);
+        if (!activeItem) return items;
+
+        // Check if overId is a date container (we'll use date strings as container IDs)
+        // Check both direct match and if overId is another task
+        let overItem = items.find(i => i.id === overId);
+        let targetDate = overItem ? overItem.date : overId;
+
+        // If overId is not a task, and it doesn't look like a date, do nothing
+        if (!overItem && !/^\d{4}-\d{2}-\d{2}$/.test(overId)) return items;
+
         const oldIndex = items.findIndex((i) => i.id === activeId);
-        const newIndex = items.findIndex((i) => i.id === overId);
+        let newItems = [...items];
         
-        if (oldIndex === -1 || newIndex === -1) return items;
-        
-        const newItems = [...items];
+        // Remove from old position
         const [movedItem] = newItems.splice(oldIndex, 1);
+        
+        // Update date if moved to a different container
+        movedItem.date = targetDate;
+
+        // If dropping on a specific task, find its new index
+        // If dropping on a container, add to end (or beginning)
+        let newIndex = overItem ? newItems.findIndex(i => i.id === overId) : newItems.length;
+        
         newItems.splice(newIndex, 0, movedItem);
         
-        // Update the order property to match the new array position
-        return newItems.map((item, index) => ({
-          ...item,
-          order: index
-        }));
+        // Group by date and reorder within each group
+        const dateGroups: Record<string, Task[]> = {};
+        newItems.forEach(item => {
+            if (!dateGroups[item.date]) dateGroups[item.date] = [];
+            dateGroups[item.date].push(item);
+        });
+
+        // Update order within each date group
+        const finalItems: Task[] = [];
+        Object.values(dateGroups).forEach(groupTasks => {
+            groupTasks.forEach((item, index) => {
+                finalItems.push({ ...item, order: index });
+            });
+        });
+
+        return finalItems;
       });
   };
 

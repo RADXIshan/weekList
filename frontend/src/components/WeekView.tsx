@@ -5,9 +5,52 @@ import TaskItem from './TaskItem';
 import { Plus, LayoutGrid, List, Tag, Repeat, Flag, Check } from 'lucide-react';
 import { useClickOutside } from '../hooks/useClickOutside';
 import type { RecurringRule } from '../types';
+import { 
+  DndContext, 
+  closestCorners, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  useDroppable,
+  DragOverlay
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  verticalListSortingStrategy 
+} from '@dnd-kit/sortable';
+
+const SortableDayContainer = ({ id, tasks, children, className, onToggle, onDelete }: { 
+    id: string, 
+    tasks: any[], 
+    children?: React.ReactNode, 
+    className?: string,
+    onToggle: (id: string) => void,
+    onDelete: (id: string) => void
+}) => {
+    const { setNodeRef } = useDroppable({ id });
+    
+    return (
+        <SortableContext id={id} items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div ref={setNodeRef} className={className}>
+                {tasks.map(task => (
+                    <TaskItem 
+                        key={task.id} 
+                        task={task} 
+                        onToggle={onToggle} 
+                        onDelete={onDelete} 
+                    />
+                ))}
+                {children}
+            </div>
+        </SortableContext>
+    );
+};
 
 const WeekView = () => {
-  const { getTasksForDate, toggleTask, deleteTask, addTask, labels } = useApp();
+  const { getTasksForDate, toggleTask, deleteTask, addTask, labels, reorderTasks } = useApp();
   const [layout, setLayout] = useState<'list' | 'board'>('board');
   const [addingTaskDate, setAddingTaskDate] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -20,10 +63,31 @@ const WeekView = () => {
   const [isLabelOpen, setIsLabelOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [isRecurringOpen, setIsRecurringOpen] = useState(false); // Added for recurring dropdown
+  const [activeTask, setActiveTask] = useState<any | null>(null);
 
   const labelDropdownRef = useClickOutside<HTMLDivElement>(() => setIsLabelOpen(false));
   const priorityDropdownRef = useClickOutside<HTMLDivElement>(() => setIsPriorityOpen(false));
   const recurringDropdownRef = useClickOutside<HTMLDivElement>(() => setIsRecurringOpen(false));
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragStart = (event: any) => {
+    const { active } = event;
+    const task = getTasksForDate(new Date()).find(t => t.id === active.id) || 
+                 days.flatMap(d => getTasksForDate(d)).find(t => t.id === active.id);
+    setActiveTask(task);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    if (over && active.id !== over.id) {
+        reorderTasks(active.id as string, over.id as string);
+    }
+  };
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(new Date(), i));
 
@@ -219,7 +283,7 @@ const WeekView = () => {
       const isAdding = addingTaskDate === dateStr;
 
       return (
-          <div className="min-w-[300px] h-full flex flex-col bg-neutral-900/40 border border-neutral-800 rounded-xl overflow-hidden group/col">
+          <div className="w-[350px] shrink-0 h-full flex flex-col bg-neutral-900/40 border border-neutral-800 rounded-xl overflow-hidden group/col">
                {/* Header */}
                <div className={`p-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-10 
                    ${isToday(date) ? 'border-b-indigo-500/50' : ''}`}
@@ -251,54 +315,33 @@ const WeekView = () => {
                     
                     {isAdding && <TaskInput dateStr={dateStr} autoFocus />}
 
-                   <div className="space-y-2">
-                        {tasks.map(task => (
-                             <TaskItem 
-                                key={task.id} 
-                                task={task} 
-                                onToggle={toggleTask} 
-                                onDelete={deleteTask} 
-                            />
-                        ))}
-                   </div>
+                   <SortableDayContainer 
+                        id={dateStr} 
+                        tasks={tasks} 
+                        onToggle={toggleTask} 
+                        onDelete={deleteTask}
+                        className="space-y-2 min-h-[50px]"
+                    />
                </div>
           </div>
       );
   };
 
-  return (
-    <div className="h-full flex flex-col w-full overflow-hidden">
-      {/* View Header */}
-      <div className="shrink-0 p-4 md:p-8 pb-4 flex items-center justify-between">
-         <h2 className="text-3xl font-bold text-neutral-100 tracking-tight">Week Plan</h2>
-         <div className="flex bg-neutral-900 p-1 rounded-lg border border-neutral-800">
-             <button 
-                onClick={() => setLayout('list')}
-                className={`p-2 rounded-md transition-all ${layout === 'list' ? 'bg-neutral-800 text-indigo-400' : 'text-neutral-500 hover:text-neutral-300'}`}
-             >
-                 <List className="w-5 h-5" />
-             </button>
-             <button 
-                onClick={() => setLayout('board')}
-                className={`p-2 rounded-md transition-all ${layout === 'board' ? 'bg-neutral-800 text-indigo-400' : 'text-neutral-500 hover:text-neutral-300'}`}
-             >
-                 <LayoutGrid className="w-5 h-5" />
-             </button>
-         </div>
+  const Content = () => {
+    if (layout === 'board') {
+        return (
+            <div className="flex-1 overflow-x-auto min-h-0 custom-scrollbar p-4 xl:p-8 pt-0">
+                <div className="flex h-full gap-4 md:gap-6 w-max min-w-full pb-4">
+                    {days.map(date => (
+                        <DayColumn key={date.toISOString()} date={date} />
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
-
-      </div>
-
-      {layout === 'board' ? (
-          <div className="flex-1 overflow-x-auto min-h-0 custom-scrollbar p-4 xl:p-8 pt-0">
-               <div className="flex h-full gap-4 md:gap-6 w-max min-w-full pb-4">
-                   {days.map(date => (
-                       <DayColumn key={date.toISOString()} date={date} />
-                   ))}
-               </div>
-          </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pt-0 max-w-4xl mx-auto w-full space-y-8 pb-20">
+    return (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pt-0 max-w-5xl mx-auto w-full space-y-8 pb-20">
              {days.map(date => {
                 const tasks = getTasksForDate(date);
                 const dateStr = format(date, 'yyyy-MM-dd');
@@ -332,24 +375,64 @@ const WeekView = () => {
                             </div>
                         )}
 
-                        <div className="space-y-2">
+                        <SortableDayContainer 
+                            id={dateStr} 
+                            tasks={tasks} 
+                            onToggle={toggleTask} 
+                            onDelete={deleteTask}
+                            className="space-y-2 min-h-[50px]"
+                        >
                             {tasks.length === 0 && !isAdding && (
                                 <p className="text-sm text-neutral-600 italic py-2">No tasks</p>
                             )}
-                            {tasks.map(task => (
-                                 <TaskItem 
-                                    key={task.id} 
-                                    task={task} 
-                                    onToggle={toggleTask} 
-                                    onDelete={deleteTask} 
-                                />
-                            ))}
-                        </div>
+                        </SortableDayContainer>
                     </div>
                 );
              })}
         </div>
-      )}
+    );
+  };
+
+  return (
+    <div className="h-full flex flex-col w-full overflow-hidden">
+      {/* View Header */}
+      <div className="shrink-0 p-4 md:p-8 pb-4 flex items-center justify-between">
+         <h2 className="text-3xl font-bold text-neutral-100 tracking-tight">Week Plan</h2>
+         <div className="flex bg-neutral-900 p-1 rounded-lg border border-neutral-800">
+             <button 
+                onClick={() => setLayout('list')}
+                className={`p-2 rounded-md transition-all ${layout === 'list' ? 'bg-neutral-800 text-indigo-400' : 'text-neutral-500 hover:text-neutral-300'}`}
+             >
+                 <List className="w-5 h-5" />
+             </button>
+             <button 
+                onClick={() => setLayout('board')}
+                className={`p-2 rounded-md transition-all ${layout === 'board' ? 'bg-neutral-800 text-indigo-400' : 'text-neutral-500 hover:text-neutral-300'}`}
+             >
+                 <LayoutGrid className="w-5 h-5" />
+             </button>
+         </div>
+      </div>
+
+      <DndContext 
+        sensors={sensors} 
+        collisionDetection={closestCorners} 
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+          <Content />
+          <DragOverlay adjustScale={true}>
+              {activeTask ? (
+                  <div className="w-[350px] opacity-80 cursor-grabbing">
+                      <TaskItem 
+                        task={activeTask} 
+                        onToggle={() => {}} 
+                        onDelete={() => {}} 
+                      />
+                  </div>
+              ) : null}
+          </DragOverlay>
+      </DndContext>
     </div>
   );
 };
