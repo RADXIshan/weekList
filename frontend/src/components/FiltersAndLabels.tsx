@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Tag, Trash2, Edit2, Check, X, Plus } from 'lucide-react';
+import DeleteLabelModal from './DeleteLabelModal';
 
 
 const FiltersAndLabels = () => {
   const { labels, tasks, deleteLabel, renameLabel, setFilterType, setActiveLabel, setViewMode, createLabel } = useApp();
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [labelToDelete, setLabelToDelete] = useState<string | null>(null);
 
   const getTaskCount = (label: string) => {
     return tasks.filter(t => t.labels?.includes(label) && !t.completed).length;
@@ -112,12 +114,8 @@ const FiltersAndLabels = () => {
                                             <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button 
-                                            onClick={() => {
-                                                if (confirm(`Delete label "${label}"?`)) {
-                                                    deleteLabel(label);
-                                                }
-                                            }}
-                                            className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            onClick={() => setLabelToDelete(label)}
+                                            className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -130,6 +128,17 @@ const FiltersAndLabels = () => {
             </div>
         </div>
       </div>
+
+      {labelToDelete && (
+        <DeleteLabelModal 
+            label={labelToDelete} 
+            onConfirm={() => {
+                deleteLabel(labelToDelete);
+                setLabelToDelete(null);
+            }} 
+            onCancel={() => setLabelToDelete(null)} 
+        />
+      )}
     </div>
   );
 };
