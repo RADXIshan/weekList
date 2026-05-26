@@ -46,6 +46,9 @@ interface AppContextType {
   getMonthlyStats: () => { name: string; completed: number }[];
   getStreak: () => number;
   resetMetrics: () => void;
+  deletePrompt: { taskId: string; dateStr?: string } | null;
+  setDeletePrompt: (prompt: { taskId: string; dateStr?: string } | null) => void;
+  confirmDelete: (onlyThisOccurrence: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -146,6 +149,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'dashboard' | 'filters' | 'filters-management'>('day');
   const [filterType, setFilterType] = useState<'favorites' | 'label' | null>(null);
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  const [deletePrompt, setDeletePrompt] = useState<{ taskId: string; dateStr?: string } | null>(null);
 
   // Persist Tasks
   useEffect(() => {
@@ -236,8 +240,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteTask = (taskId: string) => {
+    const { originalId, dateStr } = parseTaskId(taskId);
+    const task = tasks.find(t => t.id === originalId);
+    if (task && task.isRecurring && !task.parentId) {
+      setDeletePrompt({ taskId, dateStr });
+    } else {
+      setTasks(prev => prev.filter(t => t.id !== originalId && t.parentId !== originalId));
+    }
+  };
+
+  const confirmDelete = (onlyThisOccurrence: boolean) => {
+    if (!deletePrompt) return;
+    const { taskId, dateStr } = deletePrompt;
     const { originalId } = parseTaskId(taskId);
-    setTasks(prev => prev.filter(t => t.id !== originalId && t.parentId !== originalId));
+
+    if (onlyThisOccurrence) {
+      setTasks(prev => {
+        const task = prev.find(t => t.id === originalId);
+        if (!task) return prev;
+        
+        const resolvedDateStr = dateStr || task.date;
+        
+        if (resolvedDateStr === task.date) {
+          let nextDate = getNextDate(resolvedDateStr, task.recurringRule!);
+          while (prev.some(t => t.parentId === task.id && t.date === nextDate && t.completed)) {
+            nextDate = getNextDate(nextDate, task.recurringRule!);
+          }
+          return prev.map(t => {
+            if (t.id === originalId) {
+              return {
+                ...t,
+                date: nextDate
+              };
+            }
+            return t;
+          });
+        } else {
+          return prev.map(t => {
+            if (t.id === originalId) {
+              const skipped = t.skippedDates || [];
+              return {
+                ...t,
+                skippedDates: skipped.includes(resolvedDateStr) ? skipped : [...skipped, resolvedDateStr]
+              };
+            }
+            return t;
+          });
+        }
+      });
+    } else {
+      setTasks(prev => prev.filter(t => t.id !== originalId && t.parentId !== originalId));
+    }
+    setDeletePrompt(null);
   };
 
   const editTask = (
@@ -388,7 +442,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (t.date === targetStr) return false;
           return doesRecurringTaskMatchDate(t, date);
       }).filter(t => {
-          return !tasks.some(history => history.parentId === t.id && history.date === targetStr && history.completed);
+          const isCompleted = tasks.some(history => history.parentId === t.id && history.date === targetStr && history.completed);
+          if (isCompleted) return false;
+          
+          const isSkipped = t.skippedDates?.includes(targetStr);
+          if (isSkipped) return false;
+          
+          return true;
       }).map(t => ({
           ...t,
           id: `${t.id}__${targetStr}`
@@ -497,7 +557,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       getStreak,
       resetMetrics,
       getTasksForDate,
-      dailProgress
+      dailProgress,
+      deletePrompt,
+      setDeletePrompt,
+      confirmDelete
     }}>
       {children}
     </AppContext.Provider>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import NamePrompt from './NamePrompt';
+import DeleteRecurringModal from './DeleteRecurringModal';
 import { Menu } from 'lucide-react';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -9,6 +10,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen w-full bg-neutral-950 text-neutral-100 overflow-hidden font-sans">
       <NamePrompt />
+      <DeleteRecurringModal />
       <Sidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden relative min-w-0">

@@ -19,6 +19,7 @@ export interface Task {
   isRecurring?: boolean;
   recurringRule?: RecurringRule;
   parentId?: string; // If this is an instance of a recurring task, point to the original
+  skippedDates?: string[];
 
   // Organization
   labels?: string[];
