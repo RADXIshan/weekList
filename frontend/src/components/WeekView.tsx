@@ -341,7 +341,7 @@ const WeekView = () => {
       const isAdding = addingTaskDate === dateStr;
 
       return (
-          <div className="w-[350px] shrink-0 h-full flex flex-col bg-neutral-900/40 border border-neutral-800 rounded-xl overflow-hidden group/col">
+          <div className="w-[460px] shrink-0 h-full flex flex-col bg-neutral-900/40 border border-neutral-800 rounded-xl overflow-hidden group/col">
                {/* Header */}
                <div className={`p-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-10 
                    ${isToday(date) ? 'border-b-indigo-500/50' : ''}`}
@@ -481,7 +481,7 @@ const WeekView = () => {
           <Content />
           <DragOverlay adjustScale={true}>
               {activeTask ? (
-                  <div className="w-[350px] opacity-80 cursor-grabbing">
+                  <div className="w-[460px] opacity-80 cursor-grabbing">
                       <TaskItem 
                         task={activeTask} 
                         onToggle={() => {}} 
