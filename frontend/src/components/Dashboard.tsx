@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import ResetModal from './ResetModal';
 import { 
   BarChart, 
   Bar, 
@@ -25,7 +27,8 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: s
 );
 
 const Dashboard = () => {
-    const { getWeeklyStats, getMonthlyStats, tasks, dailProgress, getStreak, resetMetrics } = useApp();
+    const { getWeeklyStats, getMonthlyStats, tasks, dailProgress, getStreak } = useApp();
+    const [isResetOpen, setIsResetOpen] = useState(false);
     const weeklyStats = getWeeklyStats();
     const monthlyStats = getMonthlyStats();
     
@@ -35,20 +38,15 @@ const Dashboard = () => {
 
     return (
         <div className="h-full flex flex-col max-w-5xl mx-auto p-4 md:p-8 overflow-y-auto custom-scrollbar animate-in fade-in duration-500">
+            <ResetModal isOpen={isResetOpen} onClose={() => setIsResetOpen(false)} />
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-bold text-neutral-100 tracking-tight flex items-center gap-3">
                     <PieChart className="w-8 h-8 text-indigo-500" />
                     Progress Dashboard
                 </h2>
                 <button 
-                    onClick={() => {
-                        // Custom modal or simple confirm for now, but styled better?
-                        // Since I can't easily add a modal portal without more code, I'll stick to confirm but text was approved.
-                        if (confirm('⚠️ DANGER: Are you sure you want to delete ALL tasks and reset metrics?\n\nThis action cannot be undone.')) {
-                            resetMetrics();
-                        }
-                    }}
-                    className="text-xs text-red-500/60 hover:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
+                    onClick={() => setIsResetOpen(true)}
+                    className="text-xs text-red-500/60 hover:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
                 >
                     <Trash2 className="w-4 h-4" />
                     Reset System

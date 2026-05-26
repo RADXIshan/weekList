@@ -46,6 +46,7 @@ interface AppContextType {
   getMonthlyStats: () => { name: string; completed: number }[];
   getStreak: () => number;
   resetMetrics: () => void;
+  resetProgress: () => void;
   deletePrompt: { taskId: string; dateStr?: string } | null;
   setDeletePrompt: (prompt: { taskId: string; dateStr?: string } | null) => void;
   confirmDelete: (onlyThisOccurrence: boolean) => void;
@@ -527,6 +528,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedDate(new Date());
   };
 
+  const resetProgress = () => {
+      setTasks(prev => {
+          const historyTasks = prev.filter(t => t.parentId);
+          const earliestDatesByParentId: Record<string, string> = {};
+          historyTasks.forEach(ht => {
+              if (ht.parentId) {
+                  const currentDate = ht.date;
+                  const existingEarliest = earliestDatesByParentId[ht.parentId];
+                  if (!existingEarliest || currentDate < existingEarliest) {
+                      earliestDatesByParentId[ht.parentId] = currentDate;
+                  }
+              }
+          });
+
+          return prev
+              .filter(t => !t.parentId)
+              .map(t => {
+                  const earliestDate = earliestDatesByParentId[t.id];
+                  return {
+                      ...t,
+                      completed: false,
+                      date: earliestDate ? earliestDate : t.date,
+                      skippedDates: []
+                  };
+              });
+      });
+  };
+
   return (
     <AppContext.Provider value={{
       tasks,
@@ -556,6 +585,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       removeLabelFromTask,
       getStreak,
       resetMetrics,
+      resetProgress,
       getTasksForDate,
       dailProgress,
       deletePrompt,
