@@ -74,6 +74,41 @@ const getNextDate = (currentDate: string, rule: RecurringRule): string => {
   return format(addDays(date, 1), 'yyyy-MM-dd'); 
 };
 
+const parseTaskId = (id: string): { originalId: string; dateStr?: string } => {
+  if (id.includes('__')) {
+    const [originalId, dateStr] = id.split('__');
+    return { originalId, dateStr };
+  }
+  return { originalId: id };
+};
+
+const doesRecurringTaskMatchDate = (task: Task, date: Date): boolean => {
+  if (!task.isRecurring || !task.recurringRule || task.completed) return false;
+  
+  const targetStr = format(date, 'yyyy-MM-dd');
+  const taskDateStr = task.date;
+  
+  if (targetStr < taskDateStr) return false;
+  
+  const rule = task.recurringRule;
+  const targetDay = date.getDay(); // 0-6
+  
+  if (rule.frequency === 'daily') {
+    return true;
+  }
+  
+  if (rule.frequency === 'weekly') {
+    const taskDate = new Date(taskDateStr + 'T00:00:00');
+    return targetDay === taskDate.getDay();
+  }
+  
+  if (rule.frequency === 'custom' && rule.daysOfWeek) {
+    return rule.daysOfWeek.includes(targetDay);
+  }
+  
+  return false;
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<Task[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -144,38 +179,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleTask = (taskId: string) => {
+    const { originalId, dateStr } = parseTaskId(taskId);
     setTasks(prev => {
-      const task = prev.find(t => t.id === taskId);
+      const task = prev.find(t => t.id === originalId);
       if (!task) return prev;
       
+      if (task.parentId && task.completed) {
+        const originalTask = prev.find(t => t.id === task.parentId);
+        const filtered = prev.filter(t => t.id !== task.id);
+        if (originalTask) {
+          return filtered.map(t => {
+            if (t.id === originalTask.id) {
+              return {
+                ...t,
+                date: task.date < t.date ? task.date : t.date,
+                completed: false
+              };
+            }
+            return t;
+          });
+        }
+        return filtered;
+      }
+
       if (task.isRecurring && task.recurringRule && !task.completed) {
+         const resolvedDateStr = dateStr || task.date;
          const historyTask: Task = {
              ...task,
              id: uuidv4(),
              completed: true,
              isRecurring: false, 
              parentId: task.id,
-             date: task.date 
+             date: resolvedDateStr 
          };
          
-         const nextDate = getNextDate(task.date, task.recurringRule);
-         const updatedOriginal = {
-             ...task,
-             date: nextDate,
-             completed: false 
-         };
+         let updatedOriginal = task;
+         if (resolvedDateStr >= task.date) {
+           let nextDate = getNextDate(resolvedDateStr, task.recurringRule);
+           while (prev.some(t => t.parentId === task.id && t.date === nextDate && t.completed)) {
+             nextDate = getNextDate(nextDate, task.recurringRule);
+           }
+           updatedOriginal = {
+               ...task,
+               date: nextDate,
+               completed: false 
+           };
+         }
          
-         return [...prev.filter(t => t.id !== taskId), updatedOriginal, historyTask];
+         return [...prev.filter(t => t.id !== originalId), updatedOriginal, historyTask];
       }
 
       return prev.map(t => 
-        t.id === taskId ? { ...t, completed: !t.completed } : t
+        t.id === originalId ? { ...t, completed: !t.completed } : t
       );
     });
   };
 
   const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    const { originalId } = parseTaskId(taskId);
+    setTasks(prev => prev.filter(t => t.id !== originalId && t.parentId !== originalId));
   };
 
   const editTask = (
@@ -188,8 +250,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       labels?: string[];
     }
   ) => {
+    const { originalId } = parseTaskId(taskId);
     setTasks(prev => prev.map(t => {
-      if (t.id !== taskId) return t;
+      if (t.id !== originalId) return t;
       
       const title = updates.title !== undefined ? updates.title.trim() : t.title;
       if (updates.title !== undefined && !title) return t; // don't save empty title
@@ -213,41 +276,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   
   const reorderTasks = (activeId: string, overId: string) => {
+      const { originalId: activeOriginalId } = parseTaskId(activeId);
+      const { originalId: overOriginalId, dateStr: overDateStr } = parseTaskId(overId);
+
       setTasks((items) => {
-        const activeItem = items.find(i => i.id === activeId);
+        const activeItem = items.find(i => i.id === activeOriginalId);
         if (!activeItem) return items;
 
-        // Check if overId is a date container (we'll use date strings as container IDs)
-        // Check both direct match and if overId is another task
-        let overItem = items.find(i => i.id === overId);
-        let targetDate = overItem ? overItem.date : overId;
+        let overItem = items.find(i => i.id === overOriginalId);
+        let targetDate = overItem ? (overDateStr || overItem.date) : overId;
 
-        // If overId is not a task, and it doesn't look like a date, do nothing
-        if (!overItem && !/^\d{4}-\d{2}-\d{2}$/.test(overId)) return items;
+        if (!overItem && !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) return items;
 
-        const oldIndex = items.findIndex((i) => i.id === activeId);
+        const oldIndex = items.findIndex((i) => i.id === activeOriginalId);
         let newItems = [...items];
         
-        // Remove from old position
         const [movedItem] = newItems.splice(oldIndex, 1);
-        
-        // Update date if moved to a different container
         movedItem.date = targetDate;
 
-        // If dropping on a specific task, find its new index
-        // If dropping on a container, add to end (or beginning)
-        let newIndex = overItem ? newItems.findIndex(i => i.id === overId) : newItems.length;
-        
+        let newIndex = overItem ? newItems.findIndex(i => i.id === overOriginalId) : newItems.length;
         newItems.splice(newIndex, 0, movedItem);
         
-        // Group by date and reorder within each group
         const dateGroups: Record<string, Task[]> = {};
         newItems.forEach(item => {
             if (!dateGroups[item.date]) dateGroups[item.date] = [];
             dateGroups[item.date].push(item);
         });
 
-        // Update order within each date group
         const finalItems: Task[] = [];
         Object.values(dateGroups).forEach(groupTasks => {
             groupTasks.forEach((item, index) => {
@@ -260,8 +315,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleFavorite = (taskId: string) => {
+    const { originalId } = parseTaskId(taskId);
     setTasks(prev => prev.map(t => 
-      t.id === taskId ? { ...t, isFavorite: !t.isFavorite } : t
+      t.id === originalId ? { ...t, isFavorite: !t.isFavorite } : t
     ));
   };
 
@@ -306,8 +362,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!labels.includes(label)) {
         createLabel(label);
     }
+    const { originalId } = parseTaskId(taskId);
     setTasks(prev => prev.map(t => {
-      if (t.id !== taskId) return t;
+      if (t.id !== originalId) return t;
       const currentLabels = t.labels || [];
       if (currentLabels.includes(label)) return t;
       return { ...t, labels: [...currentLabels, label] };
@@ -315,19 +372,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const removeLabelFromTask = (taskId: string, label: string) => {
+    const { originalId } = parseTaskId(taskId);
     setTasks(prev => prev.map(t => {
-      if (t.id !== taskId) return t;
+      if (t.id !== originalId) return t;
       return { ...t, labels: (t.labels || []).filter(l => l !== label) };
     }));
   };
 
   const getTasksForDate = (date: Date) => {
       const targetStr = format(date, 'yyyy-MM-dd');
-      return tasks
-        .filter(t => t.date === targetStr)
-        .sort(() => {
-             return 0;
-        });
+      
+      const directTasks = tasks.filter(t => t.date === targetStr);
+      
+      const recurringTasks = tasks.filter(t => {
+          if (t.date === targetStr) return false;
+          return doesRecurringTaskMatchDate(t, date);
+      }).filter(t => {
+          return !tasks.some(history => history.parentId === t.id && history.date === targetStr && history.completed);
+      }).map(t => ({
+          ...t,
+          id: `${t.id}__${targetStr}`
+      }));
+      
+      return [...directTasks, ...recurringTasks].sort((a, b) => {
+          return a.order - b.order;
+      });
   };
   
   const dailProgress = (date: Date) => {
@@ -343,7 +412,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     for (let i = 6; i >= 0; i--) {
         const d = addDays(today, -i);
         const dateStr = format(d, 'yyyy-MM-dd');
-        const dayTasks = tasks.filter(t => t.date === dateStr);
+        const dayTasks = getTasksForDate(d);
         stats.push({
             date: dateStr,
             dayName: format(d, 'EEE'),

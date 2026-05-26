@@ -273,47 +273,6 @@ const WeekView = () => {
                     </div>
                 </div>
 
-                {/* Custom Days Weekday Selector */}
-                {recurringMode === 'custom' && (
-                  <div className="w-full mt-2 mb-2 bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 flex flex-col gap-1.5">
-                    <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Repeat on:</div>
-                    <div className="flex gap-1 justify-between max-w-[240px]">
-                      {[
-                        { name: 'S', val: 0 },
-                        { name: 'M', val: 1 },
-                        { name: 'T', val: 2 },
-                        { name: 'W', val: 3 },
-                        { name: 'T', val: 4 },
-                        { name: 'F', val: 5 },
-                        { name: 'S', val: 6 },
-                      ].map(day => {
-                        const isSelected = customDays.includes(day.val);
-                        return (
-                          <button
-                            key={day.val}
-                            type="button"
-                            onClick={() => {
-                              setCustomDays(prev => 
-                                prev.includes(day.val)
-                                  ? prev.filter(d => d !== day.val)
-                                  : [...prev, day.val].sort()
-                              );
-                            }}
-                            className={cn(
-                              "w-6 h-6 rounded-full text-[10px] font-bold transition-all border flex items-center justify-center",
-                              isSelected
-                                ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
-                                : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300 bg-neutral-900"
-                            )}
-                          >
-                            {day.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                
                 <div className="flex items-center gap-2">
                      <button 
                         type="button"
@@ -331,6 +290,47 @@ const WeekView = () => {
                     </button>
                 </div>
             </div>
+            
+            {/* Custom Days Weekday Selector */}
+            {recurringMode === 'custom' && (
+              <div className="w-full mt-2 bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 flex flex-col gap-1.5">
+                <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Repeat on:</div>
+                <div className="flex gap-1 justify-between max-w-[240px]">
+                  {[
+                    { name: 'S', val: 0 },
+                    { name: 'M', val: 1 },
+                    { name: 'T', val: 2 },
+                    { name: 'W', val: 3 },
+                    { name: 'T', val: 4 },
+                    { name: 'F', val: 5 },
+                    { name: 'S', val: 6 },
+                  ].map(day => {
+                    const isSelected = customDays.includes(day.val);
+                    return (
+                      <button
+                        key={day.val}
+                        type="button"
+                        onClick={() => {
+                          setCustomDays(prev => 
+                            prev.includes(day.val)
+                              ? prev.filter(d => d !== day.val)
+                              : [...prev, day.val].sort()
+                          );
+                        }}
+                        className={cn(
+                          "w-6 h-6 rounded-full text-[10px] font-bold transition-all border flex items-center justify-center",
+                          isSelected
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
+                            : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300 bg-neutral-900"
+                        )}
+                      >
+                        {day.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
         </form>
       );
   };
