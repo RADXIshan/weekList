@@ -31,6 +31,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
   const priorityDropdownRef = useClickOutside<HTMLDivElement>(() => setIsPriorityOpen(false));
   const recurringDropdownRef = useClickOutside<HTMLDivElement>(() => setIsRecurringOpen(false));
 
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   const {
     attributes,
     listeners,
@@ -47,12 +49,20 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
   };
 
   React.useEffect(() => {
-    setEditTitle(task.title);
-    setEditPriority(task.priority || 4);
-    setEditLabels(task.labels || []);
-    setEditIsRecurring(!!task.isRecurring);
-    setEditRecurringRule(task.recurringRule);
-  }, [task]);
+    if (!isEditing) {
+      setEditTitle(task.title);
+      setEditPriority(task.priority || 4);
+      setEditLabels(task.labels || []);
+      setEditIsRecurring(!!task.isRecurring);
+      setEditRecurringRule(task.recurringRule);
+    }
+  }, [task, isEditing]);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus({ preventScroll: true });
+    }
+  }, [isEditing]);
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -94,22 +104,26 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
         ref={setNodeRef}
         style={style}
         className={cn(
-            "group flex flex-col gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl bg-neutral-900/50 transition-all duration-300 border border-transparent hover:border-neutral-700",
+            "group flex flex-col gap-2 sm:gap-4 p-3 sm:p-4 rounded-xl bg-neutral-900/50 transition-colors duration-200 border border-transparent hover:border-neutral-700",
             isEditing ? "bg-neutral-900 border-neutral-750" : "hover:bg-neutral-800",
             isDragging && "z-50 bg-neutral-800 shadow-xl border-neutral-700"
         )}
     >
       {isEditing ? (
-        <div className="w-full space-y-3 text-left" onPointerDown={(e) => e.stopPropagation()}>
+        <div 
+          className="w-full space-y-3 text-left" 
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           {/* Title Input */}
           <input
+              ref={inputRef}
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               onKeyDown={handleEditKeyDown}
               className="w-full bg-neutral-950 border border-neutral-850 rounded-lg px-3 py-2 text-base text-neutral-200 outline-none focus:ring-2 focus:ring-indigo-500/50"
               placeholder="Task title..."
-              autoFocus
           />
 
           {/* Editors row */}
