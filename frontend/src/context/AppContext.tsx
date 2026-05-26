@@ -19,7 +19,16 @@ interface AppContextType {
   addTask: (title: string, date: string, recurringRule?: RecurringRule, initialLabels?: string[], priority?: 1 | 2 | 3 | 4) => void;
   toggleTask: (taskId: string) => void;
   deleteTask: (taskId: string) => void;
-  editTask: (taskId: string, newTitle: string) => void;
+  editTask: (
+    taskId: string, 
+    updates: {
+      title?: string;
+      priority?: 1 | 2 | 3 | 4;
+      isRecurring?: boolean;
+      recurringRule?: RecurringRule | null;
+      labels?: string[];
+    }
+  ) => void;
   reorderTasks: (activeId: string, overId: string) => void;
   toggleFavorite: (taskId: string) => void;
   // Label management
@@ -45,12 +54,22 @@ const STORAGE_KEY = 'todoist-clone-data-v2';
 const USER_PROFILE_KEY = 'todoist-user-profile';
 
 const getNextDate = (currentDate: string, rule: RecurringRule): string => {
-  const date = new Date(currentDate);
+  const date = new Date(currentDate + 'T00:00:00');
   if (rule.frequency === 'daily') {
     return format(addDays(date, rule.interval || 1), 'yyyy-MM-dd');
   }
   if (rule.frequency === 'weekly') {
      return format(addDays(date, 7), 'yyyy-MM-dd');
+  }
+  if (rule.frequency === 'custom' && rule.daysOfWeek && rule.daysOfWeek.length > 0) {
+    let next = date;
+    for (let i = 0; i < 366; i++) {
+      next = addDays(next, 1);
+      const day = next.getDay(); // 0 is Sunday, 1 is Monday...
+      if (rule.daysOfWeek.includes(day)) {
+        return format(next, 'yyyy-MM-dd');
+      }
+    }
   }
   return format(addDays(date, 1), 'yyyy-MM-dd'); 
 };
@@ -159,11 +178,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  const editTask = (taskId: string, newTitle: string) => {
-    if (!newTitle.trim()) return;
-    setTasks(prev => prev.map(t => 
-      t.id === taskId ? { ...t, title: newTitle.trim() } : t
-    ));
+  const editTask = (
+    taskId: string, 
+    updates: {
+      title?: string;
+      priority?: 1 | 2 | 3 | 4;
+      isRecurring?: boolean;
+      recurringRule?: RecurringRule | null;
+      labels?: string[];
+    }
+  ) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      
+      const title = updates.title !== undefined ? updates.title.trim() : t.title;
+      if (updates.title !== undefined && !title) return t; // don't save empty title
+      
+      const priority = updates.priority !== undefined ? updates.priority : t.priority;
+      const isRecurring = updates.isRecurring !== undefined ? updates.isRecurring : t.isRecurring;
+      const recurringRule = updates.recurringRule !== undefined 
+        ? (updates.recurringRule === null ? undefined : updates.recurringRule) 
+        : t.recurringRule;
+      const labels = updates.labels !== undefined ? updates.labels : t.labels;
+      
+      return {
+        ...t,
+        title,
+        priority,
+        isRecurring,
+        recurringRule,
+        labels
+      };
+    }));
   };
   
   const reorderTasks = (activeId: string, overId: string) => {

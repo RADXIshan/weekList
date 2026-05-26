@@ -8,11 +8,13 @@ import type { RecurringRule } from '../types';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { cn } from '../lib/utils';
 
 const DayView = () => {
   const { selectedDate, getTasksForDate, dailProgress, addTask, toggleTask, deleteTask, reorderTasks, labels } = useApp();
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [recurringMode, setRecurringMode] = useState<'none' | 'daily' | 'weekly'>('none');
+  const [recurringMode, setRecurringMode] = useState<'none' | 'daily' | 'weekly' | 'custom'>('none');
+  const [customDays, setCustomDays] = useState<number[]>([1, 2, 3, 4, 5]); // default Mon-Fri
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLabelOpen, setIsLabelOpen] = useState(false);
@@ -61,12 +63,19 @@ const DayView = () => {
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTaskTitle.trim()) {
-      const rule: RecurringRule | undefined = recurringMode !== 'none' ? { frequency: recurringMode } : undefined;
+      if (recurringMode === 'custom' && customDays.length === 0) return;
+      const rule: RecurringRule | undefined = recurringMode !== 'none' 
+        ? { 
+            frequency: recurringMode === 'custom' ? 'custom' : recurringMode,
+            daysOfWeek: recurringMode === 'custom' ? customDays : undefined
+          } 
+        : undefined;
       
       addTask(newTaskTitle, format(selectedDate, 'yyyy-MM-dd'), rule, selectedLabel ? [selectedLabel] : [], newTaskPriority);
       
       setNewTaskTitle('');
       setRecurringMode('none');
+      setCustomDays([1, 2, 3, 4, 5]);
       setSelectedLabel(null);
     }
   };
@@ -307,6 +316,14 @@ const DayView = () => {
                                        <span>Weekly</span>
                                        {recurringMode === 'weekly' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
                                    </button>
+                                   <button 
+                                       type="button"
+                                       onClick={() => { setRecurringMode('custom'); setIsRecurringOpen(false); }}
+                                       className="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                   >
+                                       <span>Custom Days</span>
+                                       {recurringMode === 'custom' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                   </button>
                                </div>
                            </div>
                        )}
@@ -363,6 +380,47 @@ const DayView = () => {
                       )}
                    </div>
               </div>
+               
+               {/* Custom Days Weekday Selector */}
+               {recurringMode === 'custom' && (
+                 <div className="w-full mt-3 bg-neutral-900 border border-neutral-800 p-3 rounded-lg flex flex-col gap-2">
+                   <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Repeat on these days:</div>
+                   <div className="flex gap-1.5 justify-between max-w-xs">
+                     {[
+                       { name: 'S', val: 0 },
+                       { name: 'M', val: 1 },
+                       { name: 'T', val: 2 },
+                       { name: 'W', val: 3 },
+                       { name: 'T', val: 4 },
+                       { name: 'F', val: 5 },
+                       { name: 'S', val: 6 },
+                     ].map(day => {
+                       const isSelected = customDays.includes(day.val);
+                       return (
+                         <button
+                           key={day.val}
+                           type="button"
+                           onClick={() => {
+                             setCustomDays(prev => 
+                               prev.includes(day.val)
+                                 ? prev.filter(d => d !== day.val)
+                                 : [...prev, day.val].sort()
+                             );
+                           }}
+                           className={cn(
+                             "w-8 h-8 rounded-full text-xs font-bold transition-all border",
+                             isSelected
+                               ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                               : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300 bg-neutral-950"
+                           )}
+                         >
+                           {day.name}
+                         </button>
+                       );
+                     })}
+                   </div>
+                 </div>
+               )}
           </form>
       </div>
     </div>

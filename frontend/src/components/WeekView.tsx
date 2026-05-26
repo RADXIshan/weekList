@@ -5,6 +5,7 @@ import TaskItem from './TaskItem';
 import { Plus, LayoutGrid, List, Tag, Repeat, Flag, Check } from 'lucide-react';
 import { useClickOutside } from '../hooks/useClickOutside';
 import type { RecurringRule } from '../types';
+import { cn } from '../lib/utils';
 import { 
   DndContext, 
   closestCorners, 
@@ -58,7 +59,8 @@ const WeekView = () => {
   // New Task State
   // New Task State
   const [newTaskPriority, setNewTaskPriority] = useState<1 | 2 | 3 | 4>(4);
-  const [recurringMode, setRecurringMode] = useState<'none' | 'daily' | 'weekly'>('none');
+  const [recurringMode, setRecurringMode] = useState<'none' | 'daily' | 'weekly' | 'custom'>('none');
+  const [customDays, setCustomDays] = useState<number[]>([1, 2, 3, 4, 5]); // default Mon-Fri
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [isLabelOpen, setIsLabelOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
@@ -96,13 +98,20 @@ const WeekView = () => {
       setAddingTaskDate(null);
       setNewTaskPriority(4);
       setRecurringMode('none');
+      setCustomDays([1, 2, 3, 4, 5]);
       setSelectedLabel(null);
   };
 
   const handleAddSubmit = (e: React.FormEvent, dateStr: string) => {
       e.preventDefault();
       if (newTaskTitle.trim()) {
-          const rule: RecurringRule | undefined = recurringMode !== 'none' ? { frequency: recurringMode } : undefined;
+          if (recurringMode === 'custom' && customDays.length === 0) return;
+          const rule: RecurringRule | undefined = recurringMode !== 'none' 
+            ? { 
+                frequency: recurringMode === 'custom' ? 'custom' : recurringMode,
+                daysOfWeek: recurringMode === 'custom' ? customDays : undefined
+              } 
+            : undefined;
           addTask(newTaskTitle, dateStr, rule, selectedLabel ? [selectedLabel] : [], newTaskPriority);
           resetForm();
       }
@@ -250,11 +259,60 @@ const WeekView = () => {
                                         <span>Weekly</span>
                                         {recurringMode === 'weekly' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
                                     </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => { setRecurringMode('custom'); setIsRecurringOpen(false); }}
+                                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 flex items-center gap-2"
+                                    >
+                                        <span>Custom Days</span>
+                                        {recurringMode === 'custom' && <Check className="w-3 h-3 ml-auto text-indigo-500" />}
+                                    </button>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* Custom Days Weekday Selector */}
+                {recurringMode === 'custom' && (
+                  <div className="w-full mt-2 mb-2 bg-neutral-950 p-2.5 rounded-lg border border-neutral-800 flex flex-col gap-1.5">
+                    <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Repeat on:</div>
+                    <div className="flex gap-1 justify-between max-w-[240px]">
+                      {[
+                        { name: 'S', val: 0 },
+                        { name: 'M', val: 1 },
+                        { name: 'T', val: 2 },
+                        { name: 'W', val: 3 },
+                        { name: 'T', val: 4 },
+                        { name: 'F', val: 5 },
+                        { name: 'S', val: 6 },
+                      ].map(day => {
+                        const isSelected = customDays.includes(day.val);
+                        return (
+                          <button
+                            key={day.val}
+                            type="button"
+                            onClick={() => {
+                              setCustomDays(prev => 
+                                prev.includes(day.val)
+                                  ? prev.filter(d => d !== day.val)
+                                  : [...prev, day.val].sort()
+                              );
+                            }}
+                            className={cn(
+                              "w-6 h-6 rounded-full text-[10px] font-bold transition-all border flex items-center justify-center",
+                              isSelected
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
+                                : "border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300 bg-neutral-900"
+                            )}
+                          >
+                            {day.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-2">
                      <button 
@@ -266,7 +324,7 @@ const WeekView = () => {
                     </button>
                     <button 
                         type="submit"
-                        disabled={!newTaskTitle.trim()}
+                        disabled={!newTaskTitle.trim() || (recurringMode === 'custom' && customDays.length === 0)}
                         className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Add
